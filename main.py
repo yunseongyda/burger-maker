@@ -11,9 +11,10 @@ cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
-SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+# SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-pygame.display.set_caption("Camera + Game UI")
+pygame.display.set_caption("Burger Maker")
 
 font = pygame.font.SysFont(None, 36)
 big_font = pygame.font.SysFont(None, 72)
@@ -37,7 +38,6 @@ clock = pygame.time.Clock()
 mp_hands = mp.solutions.hands
 hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7, min_tracking_confidence=0.5)
 mp_draw = mp.solutions.drawing_utils
-
 menu_active = True
 running = True
 
@@ -75,8 +75,8 @@ ingredient_colors = {
     "tomato": TOMATO
 }
 
-reset_button_rect = pygame.Rect(40, SCREEN_HEIGHT - 100, 160, 60)
-submit_button_rect = pygame.Rect(SCREEN_WIDTH - 200, SCREEN_HEIGHT - 100, 200, 150)
+reset_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 +50, 160, 60)
+submit_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 -150, 200, 150)
 
 all_recipes = []
 for _ in range(20):
@@ -105,11 +105,13 @@ def draw_menu():
     pygame.display.flip()
 
 def draw_status():
-    elapsed = int(time.time() - start_time)
+    elapsed = int(time.time() - start_time) - 1
     time_text = font.render(f"Time: {elapsed}s", True, BLACK)
     score_text = font.render(f"Score: {score}", True, BLACK)
+    round_text = font.render(f"Burger {round_count + 1} / 20", True, BLACK)  # 햄버거 개수 출력
     screen.blit(time_text, time_text.get_rect(center=(SCREEN_WIDTH // 2, 30)))
     screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH // 2, 70)))
+    screen.blit(round_text, round_text.get_rect(center=(SCREEN_WIDTH // 2, 110)))
 
 def draw_buttons():
     pygame.draw.rect(screen, DARK_GRAY, reset_button_rect, border_radius=8)
@@ -120,7 +122,7 @@ def draw_buttons():
     screen.blit(text3, text3.get_rect(center=submit_button_rect.center))
 
 def draw_recipe(recipe):
-    x, y = 20, 320
+    x, y = 60, 500
     for ingredient in reversed(recipe):
         color = ingredient_colors.get(ingredient, WHITE)
         pygame.draw.circle(screen, color, (x, y), 30)
@@ -158,7 +160,7 @@ def get_camera_surface():
             hand_screen_pos = (int(cx * SCREEN_WIDTH - x_offset), int(cy * SCREEN_HEIGHT + y_offset))
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame = np.rot90(frame)
-    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (400, 300))
+    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (800-200, 600-200))
 
 def evaluate_recipe():
     global score, current_recipe, total_accuracy_score, round_count, burger_start_time
@@ -195,8 +197,32 @@ def evaluate_recipe():
 def end_game():
     print("--- GAME OVER ---")
     print(f"Total Score: {score}")
-    pygame.quit()
-    sys.exit()
+    global running
+    screen.fill(GRAY)
+    
+    # 게임 오버 메시지
+    title = big_font.render("Game Over!", True, RED)
+    screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100)))
+
+    # 최종 점수 출력
+    final_score = font.render(f"Final Score: {score}", True, BLACK)
+    screen.blit(final_score, final_score.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)))
+
+    # 종료 안내 메시지
+    exit_msg = font.render("Press ESC to exit", True, DARK_GRAY)
+    screen.blit(exit_msg, exit_msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)))
+
+    pygame.display.flip()
+
+    # 종료 대기 루프
+    while True:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
 
 while running:
     if menu_active:
@@ -224,6 +250,9 @@ while running:
                 if cheat_index < len(current_recipe):
                     items_on_screen.insert(0, {"type": current_recipe[cheat_index]})
                     cheat_index += 1
+            elif event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
     pygame.draw.circle(screen, DARK_GRAY, plate_pos, PLATE_RADIUS)
     for idx, item in enumerate(reversed(items_on_screen)):
         y_offset = -idx * (ITEM_RADIUS // 2)
