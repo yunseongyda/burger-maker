@@ -5,6 +5,8 @@ import sys
 import random
 import mediapipe as mp
 import time
+import json
+import os
 
 pygame.init()
 cap = cv2.VideoCapture(0)
@@ -32,6 +34,34 @@ DARK_RED = (150, 0, 0)
 PINK = (255, 105, 180)
 OLIVE = (128, 128, 0)
 TOMATO = (255, 99, 71)
+
+# 이름 저장 완료 타이머
+saved_message_timer = 0
+saved_message_alpha = 0
+
+ranking_file = "ranking.json"
+input_active = False
+user_input = ""
+
+def save_score(name, score):
+    data = []
+    if os.path.exists(ranking_file):
+        with open(ranking_file, "r") as f:
+            try:
+                data = json.load(f)
+            except json.JSONDecodeError:
+                data = []
+    data.append({"name": name, "score": score})
+    data.sort(key=lambda x: x["score"], reverse=True)
+    with open(ranking_file, "w") as f:
+        json.dump(data[:10], f, indent=2)  # Top 10만 저장
+
+def draw_input_modal():
+    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 + 120, 400, 80), border_radius=12)
+    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 + 120, 400, 80), 2, border_radius=12)
+    input_text = font.render(f"Enter your name: {user_input}", True, BLACK)
+    screen.blit(input_text, input_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 160)))
+
 
 clock = pygame.time.Clock()
 
@@ -196,46 +226,85 @@ def evaluate_recipe():
 
 def end_game():
     global running, menu_active, score, round_count, total_accuracy_score, current_recipe, all_recipes, cheat_index
+    global input_active, user_input
+    global saved_message_timer, saved_message_alpha
 
-    screen.fill(GRAY)
+    leave_record_button_rect = pygame.Rect(SCREEN_WIDTH//2 - 120, SCREEN_HEIGHT//2 + 100, 240, 50)
+    input_active = False
+    user_input = ""
 
-    # 게임 오버 메시지
-    title = big_font.render("Game Over!", True, RED)
-    screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100)))
-
-    # 최종 점수
-    final_score = font.render(f"Final Score: {score}", True, BLACK)
-    screen.blit(final_score, final_score.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)))
-
-    # 안내 메시지
-    exit_msg = font.render("Press ESC to exit / SPACE to return to Menu", True, DARK_GRAY)
-    screen.blit(exit_msg, exit_msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)))
-
-    pygame.display.flip()
-
-    # 대기 루프
     while True:
+        screen.fill(GRAY)
+
+        #게임오버
+        title = big_font.render("Game Over!", True, RED)
+        screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100)))
+        
+        #최종 점수
+        final_score = font.render(f"Final Score: {score}", True, BLACK)
+        screen.blit(final_score, final_score.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)))
+
+        exit_msg = font.render("Press ESC to exit / SPACE to return to Menu", True, DARK_GRAY)
+        screen.blit(exit_msg, exit_msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)))
+
+        pygame.draw.rect(screen, BLUE, leave_record_button_rect, border_radius=8)
+        screen.blit(font.render("Leave a record", True, WHITE),
+                    font.render("Leave a record", True, WHITE).get_rect(center=leave_record_button_rect.center))
+
+        if input_active:
+            draw_input_modal()
+
+        # 저장 완료 메시지 그리기
+        if saved_message_timer > 0:
+            saved_surface = font.render("Saved!", True, (0, 150, 0))
+            saved_surface.set_alpha(saved_message_alpha)
+            screen.blit(saved_surface, saved_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 200)))
+            saved_message_timer -= 1
+            if saved_message_timer < 30:
+                saved_message_alpha = max(0, int(255 * (saved_message_timer / 30)))  # 부드럽게 사라지도록
+
+        pygame.display.flip()
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    pygame.quit()
-                    sys.exit()
-                elif event.key == pygame.K_SPACE:
-                    # 상태 초기화
-                    menu_active = True
-                    score = 0
-                    round_count = 0
-                    total_accuracy_score = 0
-                    cheat_index = 0
-                    all_recipes = []
-                    for _ in range(20):
-                        recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
-                        all_recipes.append(recipe)
-                    current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
-                    return  # 루프 탈출해서 다시 메뉴로
+                if input_active:
+                    if event.key == pygame.K_RETURN and user_input.strip():
+                        save_score(user_input.strip(), score)
+                        input_active = False
+                        user_input = ""
+
+                        # 저장 메시지 초기화
+                        saved_message_timer = 120  # 2초 정도 유지 (60프레임 기준)
+                        saved_message_alpha = 255
+                    elif event.key == pygame.K_BACKSPACE:
+                        user_input = user_input[:-1]
+                    else:
+                        if len(user_input) < 10:
+                            user_input += event.unicode
+                else:
+                    if event.key == pygame.K_ESCAPE:
+                        pygame.quit()
+                        sys.exit()
+                    elif event.key == pygame.K_SPACE:
+                        # 상태 초기화
+                        menu_active = True
+                        score = 0
+                        round_count = 0
+                        total_accuracy_score = 0
+                        cheat_index = 0
+                        all_recipes = []
+                        for _ in range(20):
+                            recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
+                            all_recipes.append(recipe)
+                        current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
+                        return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if leave_record_button_rect.collidepoint(event.pos):
+                    input_active = True
+
 
 
 while running:
