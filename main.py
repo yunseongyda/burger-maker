@@ -195,34 +195,48 @@ def evaluate_recipe():
         return None
 
 def end_game():
-    print("--- GAME OVER ---")
-    print(f"Total Score: {score}")
-    global running
+    global running, menu_active, score, round_count, total_accuracy_score, current_recipe, all_recipes, cheat_index
+
     screen.fill(GRAY)
-    
+
     # 게임 오버 메시지
     title = big_font.render("Game Over!", True, RED)
     screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 100)))
 
-    # 최종 점수 출력
+    # 최종 점수
     final_score = font.render(f"Final Score: {score}", True, BLACK)
     screen.blit(final_score, final_score.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)))
 
-    # 종료 안내 메시지
-    exit_msg = font.render("Press ESC to exit", True, DARK_GRAY)
+    # 안내 메시지
+    exit_msg = font.render("Press ESC to exit / SPACE to return to Menu", True, DARK_GRAY)
     screen.blit(exit_msg, exit_msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)))
 
     pygame.display.flip()
 
-    # 종료 대기 루프
+    # 대기 루프
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    pygame.quit()
+                    sys.exit()
+                elif event.key == pygame.K_SPACE:
+                    # 상태 초기화
+                    menu_active = True
+                    score = 0
+                    round_count = 0
+                    total_accuracy_score = 0
+                    cheat_index = 0
+                    all_recipes = []
+                    for _ in range(20):
+                        recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
+                        all_recipes.append(recipe)
+                    current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
+                    return  # 루프 탈출해서 다시 메뉴로
+
 
 while running:
     if menu_active:
@@ -251,8 +265,7 @@ while running:
                     items_on_screen.insert(0, {"type": current_recipe[cheat_index]})
                     cheat_index += 1
             elif event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
+                end_game()
     pygame.draw.circle(screen, DARK_GRAY, plate_pos, PLATE_RADIUS)
     for idx, item in enumerate(reversed(items_on_screen)):
         y_offset = -idx * (ITEM_RADIUS // 2)
