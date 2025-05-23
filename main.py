@@ -71,8 +71,24 @@ mp_draw = mp.solutions.drawing_utils
 menu_active = True
 running = True
 
-start_button = pygame.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 - 60, 300, 60)
-quit_button = pygame.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 + 20, 300, 60)
+#option_button = pygame.image.load('an_image.png').convert()
+#rect = IMAGE.get_rect()
+#rect.center = (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2)
+
+start_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
+start_button_img = pygame.transform.scale(start_button_img, (450, 150))
+start_button_img.set_colorkey((255, 255, 255))
+start_button_rect = start_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 2, SCREEN_HEIGHT // 2 + 400))
+
+quit_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
+quit_button_img = pygame.transform.scale(quit_button_img, (450, 150))
+quit_button_img.set_colorkey((255, 255, 255))
+quit_button_rect = quit_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 523, SCREEN_HEIGHT // 2 + 400))
+
+option_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
+option_button_img = pygame.transform.scale(option_button_img, (450, 150))
+option_button_img.set_colorkey((255, 255, 255))
+option_button_rect = option_button_img.get_rect(center=(SCREEN_WIDTH // 2 - 530, SCREEN_HEIGHT // 2 + 400))
 
 hand_status = "Detecting hand..."
 prev_hand_status = "None"
@@ -125,13 +141,30 @@ BURGER_TIME_LIMIT = 30
 burger_start_time = time.time()
 
 def draw_menu():
-    screen.fill(GRAY)
-    title = big_font.render("Burger Builder", True, BLACK)
-    screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 150)))
-    pygame.draw.rect(screen, GREEN, start_button, border_radius=12)
-    pygame.draw.rect(screen, RED, quit_button, border_radius=12)
-    screen.blit(font.render("Start Game", True, WHITE), start_button.move(90, 15))
-    screen.blit(font.render("Quit Game", True, WHITE), quit_button.move(95, 15))
+    main_menu_bg = pygame.image.load('resources/images/main_menu_bg.png').convert()
+    main_menu_bg = pygame.transform.scale(main_menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
+    screen.blit(main_menu_bg, (0, 0))
+
+    # 버튼 이미지
+    screen.blit(start_button_img, start_button_rect)
+    screen.blit(option_button_img, option_button_rect)
+    screen.blit(quit_button_img, quit_button_rect)
+
+    # Play 텍스트
+    play_text = big_font.render("Play", True, WHITE)
+    play_rect = play_text.get_rect(center=start_button_rect.center)
+    screen.blit(play_text, play_rect)
+
+    # Option 텍스트
+    option_text = big_font.render("Options", True, WHITE)
+    option_rect = option_text.get_rect(center=option_button_rect.center)
+    screen.blit(option_text, option_rect)
+
+    # Quit 텍스트
+    quit_text = big_font.render("Quit", True, WHITE)
+    quit_rect = quit_text.get_rect(center=quit_button_rect.center)
+    screen.blit(quit_text, quit_rect)
+
     pygame.display.flip()
 
 def draw_status():
@@ -314,11 +347,11 @@ while running:
             if event.type == pygame.QUIT:
                 running = False
             elif event.type == pygame.MOUSEBUTTONDOWN:
-                if start_button.collidepoint(event.pos):
+                if start_button_rect.collidepoint(event.pos):
                     menu_active = False
                     start_time = time.time()
                     burger_start_time = time.time()
-                elif quit_button.collidepoint(event.pos):
+                elif quit_button_rect.collidepoint(event.pos):
                     running = False
         continue
 
