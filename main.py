@@ -35,6 +35,15 @@ PINK = (255, 105, 180)
 OLIVE = (128, 128, 0)
 TOMATO = (255, 99, 71)
 
+# 손 상태 이미지 로드
+open_hand_img = pygame.image.load("images/opened-hand.png").convert_alpha()
+closed_hand_img = pygame.image.load("images/closed-hand.png").convert_alpha()
+
+# 사이즈 조절 (적당히)
+open_hand_img = pygame.transform.scale(open_hand_img, (50, 50))
+closed_hand_img = pygame.transform.scale(closed_hand_img, (50, 50))
+
+
 # 설명서 페이지
 showing_rule_page = False
 game_rule_img = pygame.image.load("images/GameRulePage.png").convert()
@@ -915,9 +924,11 @@ while running:
         draw_recipe(current_recipe)
 
     if hand_screen_pos:
-        color = DARK_BLUE if hand_status == "Fist" else BLUE
-        pygame.draw.circle(screen, color, hand_screen_pos, 15)
-        pygame.draw.circle(screen, WHITE, hand_screen_pos, 15, 2)
+        if hand_status == "Fist":
+            screen.blit(closed_hand_img, closed_hand_img.get_rect(center=hand_screen_pos))
+        else:
+            screen.blit(open_hand_img, open_hand_img.get_rect(center=hand_screen_pos))
+
 
     camera_surface = get_camera_surface()
     if camera_surface:
