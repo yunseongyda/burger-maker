@@ -116,6 +116,8 @@ mp_draw = mp.solutions.drawing_utils
 menu_active = True
 running = True
 
+burger_goal = 10
+
 #option_button = pygame.image.load('an_image.png').convert()
 #rect = IMAGE.get_rect()
 #rect.center = (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2)
