@@ -287,16 +287,16 @@ def draw_menu():
 
     scaled_start_button = pygame.transform.scale(start_button_img, (button_width, button_height))
     scaled_option_button = pygame.transform.scale(option_button_img, (button_width, button_height))
-    scaled_quit_button = pygame.transform.scale(quit_button_img, (button_width, button_height))
+    scaled_leaderboard_button = pygame.transform.scale(leaderboard_button_img, (button_width, button_height))
 
     # 버튼 위치 재계산
     start_button_rect.size = (button_width, button_height)
     option_button_rect.size = (button_width, button_height)
-    quit_button_rect.size = (button_width, button_height)
+    leaderboard_button_rect.size = (button_width, button_height)
     start_button_rect.center = (play_x, button_y)
     option_button_rect.center = (option_x, button_y)
-    quit_button_rect.center = (quit_x, button_y)
-
+    leaderboard_button_rect.center = (quit_x, button_y)
+    
     main_menu_bg = pygame.image.load('resources/images/main_menu_bg.png').convert()
     main_menu_bg = pygame.transform.scale(main_menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(main_menu_bg, (0, 0))
@@ -304,7 +304,6 @@ def draw_menu():
     # 버튼 이미지 출력 (반응형)
     screen.blit(scaled_start_button, start_button_rect)
     screen.blit(scaled_option_button, option_button_rect)
-    screen.blit(scaled_exit_button, exit_button_rect)
     screen.blit(scaled_leaderboard_button, leaderboard_button_rect)
 
     # 텍스트 크기 비율에 따라 동적으로 설정
@@ -327,10 +326,10 @@ def draw_menu():
     screen.blit(leaderboard_text, leaderboard_rect)
 
     # 우측 상단 종료 버튼 (빨간 박스 + X)
-    pygame.draw.rect(screen, RED, exit_button_icon_rect)
+    pygame.draw.rect(screen, RED, exit_button_rect)
     x_font = pygame.font.SysFont(None, 40)
     x_text = x_font.render("X", True, WHITE)
-    x_rect = x_text.get_rect(center=exit_button_icon_rect.center)
+    x_rect = x_text.get_rect(center=exit_button_rect.center)
     screen.blit(x_text, x_rect)
 
 
@@ -367,7 +366,6 @@ def draw_menu():
 
 def option_screen():
     global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen
-    global exit_button_rect  # ← 버튼 위치 갱신을 위해 global 선언 필요
 
     fullscreen = screen.get_flags() & pygame.FULLSCREEN != 0
 
@@ -389,7 +387,7 @@ def option_screen():
     # 메뉴 화면 버튼 크기 및 위치 조정
     start_button_rect = start_button_img.get_rect(center=(center_x, center_y + button_height * 3))
     option_button_rect = option_button_img.get_rect(center=(center_x - button_width * 3, center_y + button_height * 3))
-    exit_button_rect = exit_button_img.get_rect(center=(center_x + button_width * 3, center_y + button_height * 3))  # 수정
+    leaderboard_button_rect = leaderboard_button_img.get_rect(center=(center_x + button_width * 3, center_y + button_height * 3))
 
     while True:
         screen.fill(GRAY)
@@ -414,29 +412,40 @@ def option_screen():
         screen.blit(font.render("Windowed", True, WHITE), font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
         screen.blit(font.render("Fullscreen", True, WHITE), font.render("Fullscreen", True, WHITE).get_rect(center=full_button.center))
 
-        # 뒤로가기 버튼
-        pygame.draw.rect(screen, DARK_GRAY, back_button, border_radius=8)
+        # 뒤로가기
+        pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
         screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
 
         pygame.display.flip()
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return
+                pygame.quit()
+                sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if minus_button.collidepoint(event.pos):
                     burger_goal = max(1, burger_goal - 1)
                 elif plus_button.collidepoint(event.pos):
-                    burger_goal += 1
+                    burger_goal = min(20, burger_goal + 1)
                 elif window_button.collidepoint(event.pos):
                     fullscreen = False
-                    SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
-                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                 elif full_button.collidepoint(event.pos):
                     fullscreen = True
-                    SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
-                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
                 elif back_button.collidepoint(event.pos):
+                    if fullscreen:
+                        SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
+                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+                    else:
+                        SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                    apply_responsive_scaling()
+
+                    # 메뉴 버튼 위치 재계산
+                    start_button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + button_height * 3)
+                    option_button_rect.center = (SCREEN_WIDTH // 2 - button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
+                    leaderboard_button_rect.center = (SCREEN_WIDTH // 2 + button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
+
+                    reset_game_state()
                     return
 
 
@@ -483,42 +492,6 @@ def leaderboard_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if back_button.collidepoint(event.pos):
                     return
-
-        pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
-        screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
-
-        pygame.display.flip()
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if minus_button.collidepoint(event.pos):
-                    burger_goal = max(1, burger_goal - 1)
-                elif plus_button.collidepoint(event.pos):
-                    burger_goal = min(20, burger_goal + 1)
-                elif window_button.collidepoint(event.pos):
-                    fullscreen = False
-                elif full_button.collidepoint(event.pos):
-                    fullscreen = True
-                elif back_button.collidepoint(event.pos):
-                    if fullscreen:
-                        SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
-                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
-                    else:
-                        SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
-                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-
-                    apply_responsive_scaling()
-
-                    # 메뉴 버튼 위치 재계산 (변경된 변수명 반영)
-                    start_button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + button_height * 3)
-                    option_button_rect.center = (SCREEN_WIDTH // 2 - button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
-                    exit_button_rect.center = (SCREEN_WIDTH // 2 + button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
-
-                    reset_game_state()
-                    return  # main 쪽 return도 포함
 
 def draw_status():
     elapsed = int(time.time() - start_time) - 1
