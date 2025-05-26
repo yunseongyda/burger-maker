@@ -458,10 +458,12 @@ def get_camera_surface():
             hand_screen_pos = (int(cx * SCREEN_WIDTH - x_offset), int(cy * SCREEN_HEIGHT + y_offset))
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame = np.rot90(frame)
-    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (
-            int(SCREEN_WIDTH * CAMERA_WIDTH_RATIO),
-            int(SCREEN_HEIGHT * CAMERA_HEIGHT_RATIO)
-        ))
+
+    # 캠 해상도: 화면 너비의 30%로 기준 잡고, 4:3 비율 유지
+    cam_width = int(SCREEN_WIDTH * CAMERA_WIDTH_RATIO)
+    cam_height = int((cam_width / 4) * 3)
+    print(f"Camera size: {cam_width}x{cam_height}")
+    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (cam_width, cam_height))
 
 def evaluate_recipe():
     global score, current_recipe, total_accuracy_score, round_count, burger_start_time
@@ -670,9 +672,10 @@ while running:
 
     camera_surface = get_camera_surface()
     if camera_surface:
-        camera_x = int(SCREEN_WIDTH * 0.01)  # 좌측 여백 1%
-        camera_y = int(SCREEN_HEIGHT * 0.01)  # 상단 여백 1%
-        screen.blit(camera_surface, (camera_x, camera_y))
+        # camera_x = int(SCREEN_WIDTH * 0.01)  # 좌측 여백 1%
+        # camera_y = int(SCREEN_HEIGHT * 0.01)  # 상단 여백 1%
+        # screen.blit(camera_surface, (camera_x, camera_y))
+        screen.blit(camera_surface, (0, 0))
 
     if hand_screen_pos and hand_status == "Fist" and prev_hand_status != "Fist":
         if reset_button_rect.collidepoint(hand_screen_pos):
