@@ -369,6 +369,8 @@ def end_game():
             hint_text = font.render(f"Returning to menu in {remaining} seconds...", True, DARK_GRAY)
             screen.blit(hint_text, hint_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40)))
 
+        pygame.display.flip()
+
         for event in pygame.event.get():
             auto_return_start = time.time()  # 입력 발생 → 타이머 초기화
             if event.type == pygame.QUIT:
