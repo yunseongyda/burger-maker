@@ -225,35 +225,46 @@ def draw_menu():
 def option_screen():
     global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen
 
-    burger_goal = 10  # 기본값
     fullscreen = screen.get_flags() & pygame.FULLSCREEN != 0
 
-    minus_button = pygame.Rect(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 - 50, 50, 50)
-    plus_button = pygame.Rect(SCREEN_WIDTH//2 + 50, SCREEN_HEIGHT//2 - 50, 50, 50)
+    # 현재 해상도 기준으로 동적 계산
+    center_x = SCREEN_WIDTH // 2
+    center_y = SCREEN_HEIGHT // 2
 
-    window_button = pygame.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 + 80, 140, 60)
-    full_button = pygame.Rect(SCREEN_WIDTH//2 + 10, SCREEN_HEIGHT//2 + 80, 140, 60)
+    button_width = SCREEN_WIDTH // 12
+    button_height = SCREEN_HEIGHT // 15
 
-    back_button = pygame.Rect(60, SCREEN_HEIGHT - 80, 160, 50)
+    minus_button = pygame.Rect(center_x - button_width - 20, center_y - button_height, button_width, button_height)
+    plus_button = pygame.Rect(center_x + 20, center_y - button_height, button_width, button_height)
+
+    window_button = pygame.Rect(center_x - button_width - 20, center_y + 80, button_width + 20, button_height)
+    full_button = pygame.Rect(center_x + 20, center_y + 80, button_width + 20, button_height)
+
+    back_button = pygame.Rect(40, SCREEN_HEIGHT - button_height - 30, button_width, button_height)
+
+    # 메뉴 화면 버튼 크기 및 위치 조정
+    start_button_rect = start_button_img.get_rect(center=(center_x, center_y + button_height * 3))
+    option_button_rect = option_button_img.get_rect(center=(center_x - button_width * 3, center_y + button_height * 3))
+    quit_button_rect = quit_button_img.get_rect(center=(center_x + button_width * 3, center_y + button_height * 3))
 
     while True:
         screen.fill(GRAY)
 
         title = big_font.render("Options", True, BLACK)
-        screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 100)))
+        screen.blit(title, title.get_rect(center=(center_x, 100)))
 
         # 햄버거 개수 설정
-        screen.blit(font.render("Burgers to Make:", True, BLACK), (SCREEN_WIDTH//2 - 140, SCREEN_HEIGHT//2 - 110))
+        screen.blit(font.render("Burgers to Make:", True, BLACK), (center_x - 140, center_y - 110))
         pygame.draw.rect(screen, DARK_GRAY, minus_button, border_radius=8)
         pygame.draw.rect(screen, DARK_GRAY, plus_button, border_radius=8)
         screen.blit(font.render("-", True, WHITE), font.render("-", True, WHITE).get_rect(center=minus_button.center))
         screen.blit(font.render("+", True, WHITE), font.render("+", True, WHITE).get_rect(center=plus_button.center))
 
         count_text = font.render(str(burger_goal), True, BLACK)
-        screen.blit(count_text, count_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 25)))
+        screen.blit(count_text, count_text.get_rect(center=(center_x, center_y - 25)))
 
         # 화면 모드 설정
-        screen.blit(font.render("Screen Mode:", True, BLACK), (SCREEN_WIDTH//2 - 140, SCREEN_HEIGHT//2 + 20))
+        screen.blit(font.render("Screen Mode:", True, BLACK), (center_x - 140, center_y + 20))
         pygame.draw.rect(screen, BLUE if not fullscreen else DARK_GRAY, window_button, border_radius=8)
         pygame.draw.rect(screen, BLUE if fullscreen else DARK_GRAY, full_button, border_radius=8)
         screen.blit(font.render("Windowed", True, WHITE), font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
@@ -279,9 +290,19 @@ def option_screen():
                 elif full_button.collidepoint(event.pos):
                     fullscreen = True
                 elif back_button.collidepoint(event.pos):
-                    # 적용 후 종료
-                    flags = pygame.FULLSCREEN if fullscreen else 0
-                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags)
+                    if fullscreen:
+                        SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
+                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+                    else:
+                        SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+                        screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
+                    # 메뉴 버튼 위치 재계산
+                    start_button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + button_height * 3)
+                    option_button_rect.center = (SCREEN_WIDTH // 2 - button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
+                    quit_button_rect.center = (SCREEN_WIDTH // 2 + button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
+
+                    reset_game_state()
                     return
 
 
@@ -289,7 +310,7 @@ def draw_status():
     elapsed = int(time.time() - start_time) - 1
     time_text = font.render(f"Time: {elapsed}s", True, BLACK)
     score_text = font.render(f"Score: {score}", True, BLACK)
-    round_text = font.render(f"Burger {round_count + 1} / 20", True, BLACK)  # 햄버거 개수 출력
+    round_text = font.render(f"Burger {round_count + 1} / {burger_goal}", True, BLACK)  # 햄버거 개수 출력
     screen.blit(time_text, time_text.get_rect(center=(SCREEN_WIDTH // 2, 30)))
     screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH // 2, 70)))
     screen.blit(round_text, round_text.get_rect(center=(SCREEN_WIDTH // 2, 110)))
@@ -399,7 +420,7 @@ def end_game():
         final_score = font.render(f"Final Score: {score}", True, BLACK)
         screen.blit(final_score, final_score.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2)))
 
-        exit_msg = font.render("Press ESC to exit / SPACE to return to Menu", True, DARK_GRAY)
+        exit_msg = font.render("SPACE to return to Menu", True, DARK_GRAY)
         screen.blit(exit_msg, exit_msg.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 60)))
 
         pygame.draw.rect(screen, BLUE, leave_record_button_rect, border_radius=8)
@@ -463,10 +484,7 @@ def end_game():
                         if len(user_input) < 10:
                             user_input += event.unicode
                 else:
-                    if event.key == pygame.K_ESCAPE:
-                        pygame.quit()
-                        sys.exit()
-                    elif event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_SPACE:
                         # 상태 초기화
                         
                         reset_game_state()
