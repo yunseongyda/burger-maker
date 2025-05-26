@@ -1,0 +1,29 @@
+# Python 기본 무시 파일
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# 가상환경 폴더 (venv, .env 등)
+venv/
+.env/
+
+# PyInstaller 빌드 결과물
+dist/
+build/
+*.spec
+*.exe
+
+# macOS 시스템 파일
+.DS_Store
+
+# VSCode 설정 파일
+.vscode/
+
+# JSON 저장 파일 (원하면 제외)
+ranking.json
+
+# 이미지 캐시 (옵션)
+# *.png
+# *.jpg
+# *.jpeg
