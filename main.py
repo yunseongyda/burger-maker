@@ -184,15 +184,43 @@ BURGER_TIME_LIMIT = 30
 burger_start_time = time.time()
 reset_game_state()
 
+
+# 메뉴 버튼 위치 비율 전역 변수 (main.py 상단 어딘가에 선언되어 있어야 함)
+MENU_BUTTON_Y_RATIO = 0.75
+MENU_BUTTON_X_SPACING_RATIO = 0.2
+MENU_BUTTON_WIDTH_RATIO = 0.2  # 화면 너비의 20%
+MENU_BUTTON_HEIGHT_RATIO = 0.14  # 화면 높이의 14%
+
+
 def draw_menu():
+    center_x = SCREEN_WIDTH // 2
+    center_y = int(SCREEN_HEIGHT * MENU_BUTTON_Y_RATIO)
+    spacing = int(SCREEN_WIDTH * MENU_BUTTON_X_SPACING_RATIO)
+
+    # 버튼 이미지 크기 계산
+    button_width = int(SCREEN_WIDTH * MENU_BUTTON_WIDTH_RATIO)
+    button_height = int(SCREEN_HEIGHT * MENU_BUTTON_HEIGHT_RATIO)
+
+    scaled_start_button = pygame.transform.scale(start_button_img, (button_width, button_height))
+    scaled_option_button = pygame.transform.scale(option_button_img, (button_width, button_height))
+    scaled_quit_button = pygame.transform.scale(quit_button_img, (button_width, button_height))
+
+    # 버튼 위치 재계산
+    start_button_rect.size = (button_width, button_height)
+    option_button_rect.size = (button_width, button_height)
+    quit_button_rect.size = (button_width, button_height)
+    start_button_rect.center = (center_x, center_y)
+    option_button_rect.center = (center_x - spacing, center_y)
+    quit_button_rect.center = (center_x + spacing, center_y)
+
     main_menu_bg = pygame.image.load('resources/images/main_menu_bg.png').convert()
     main_menu_bg = pygame.transform.scale(main_menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(main_menu_bg, (0, 0))
 
-    # 버튼 이미지
-    screen.blit(start_button_img, start_button_rect)
-    screen.blit(option_button_img, option_button_rect)
-    screen.blit(quit_button_img, quit_button_rect)
+    # 버튼 이미지 출력
+    screen.blit(scaled_start_button, start_button_rect)
+    screen.blit(scaled_option_button, option_button_rect)
+    screen.blit(scaled_quit_button, quit_button_rect)
 
     # Play 텍스트
     play_text = big_font.render("Play", True, WHITE)
@@ -221,6 +249,7 @@ def draw_menu():
             menu_saved_message_alpha = max(0, int(255 * (menu_saved_message_timer / 30)))
 
     pygame.display.flip()
+
 
 def option_screen():
     global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen
