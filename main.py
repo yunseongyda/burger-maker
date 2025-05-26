@@ -419,12 +419,17 @@ def draw_buttons():
     screen.blit(text3, text3.get_rect(center=submit_button_rect.center))
 
 def draw_recipe(recipe):
-    x, y = int(SCREEN_WIDTH * 0.03), int(SCREEN_HEIGHT * 0.4)
+    x, y = int(SCREEN_WIDTH * 0.03), int(SCREEN_HEIGHT * 0.6)
+
+    # 레시피 원 고정 반응형 사이즈 (기준: 1080p 화면 높이)
+    BASE_SCREEN_HEIGHT = 1080
+    RECIPE_RADIUS = int(30 * (SCREEN_HEIGHT / BASE_SCREEN_HEIGHT))  # 화면 비율 기준 유지
+
     for ingredient in reversed(recipe):
         color = ingredient_colors.get(ingredient, WHITE)
-        pygame.draw.circle(screen, color, (x, y), ITEM_RADIUS)
-        pygame.draw.circle(screen, WHITE, (x, y), ITEM_RADIUS, 2)
-        y += ITEM_RADIUS * 2 - 10
+        pygame.draw.circle(screen, color, (x, y), RECIPE_RADIUS)
+        pygame.draw.circle(screen, WHITE, (x, y), RECIPE_RADIUS, 2)
+        y += RECIPE_RADIUS * 2 - 10
 
 def get_camera_surface():
     global hand_status, message_alpha, message_timer, hand_screen_pos
@@ -459,11 +464,14 @@ def get_camera_surface():
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame = np.rot90(frame)
 
-    # 캠 해상도: 화면 너비의 30%로 기준 잡고, 4:3 비율 유지
-    cam_width = int(SCREEN_WIDTH * CAMERA_WIDTH_RATIO)
-    cam_height = int((cam_width / 4) * 3)
+    # 최대 크기 기준 비율 잡기
+    max_width = int(SCREEN_WIDTH * 0.3)
+    max_height = int(SCREEN_HEIGHT * 0.3)
+
+    cam_width = min(max_width, int((max_height * 4) / 3))
+    cam_height = int((cam_width * 3) / 4)
     print(f"Camera size: {cam_width}x{cam_height}")
-    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (cam_width, cam_height))
+    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (cam_width*1.61, cam_height*1.4))
 
 def evaluate_recipe():
     global score, current_recipe, total_accuracy_score, round_count, burger_start_time
