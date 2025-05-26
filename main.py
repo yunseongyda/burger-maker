@@ -39,11 +39,16 @@ TOMATO = (255, 99, 71)
 saved_message_timer = 0
 saved_message_alpha = 0
 
+# 메뉴에서 보여줄 저장 메시지
+menu_saved_message_timer = 0
+menu_saved_message_alpha = 0
+menu_saved_rank = None  # 몇 등인지 저장
+
 ranking_file = "ranking.json"
 input_active = False
 user_input = ""
 
-def save_score(name, score):
+def save_score(name, score, overwrite=False):
     data = []
     if os.path.exists(ranking_file):
         with open(ranking_file, "r") as f:
@@ -51,16 +56,76 @@ def save_score(name, score):
                 data = json.load(f)
             except json.JSONDecodeError:
                 data = []
+    if overwrite:
+        data = [entry for entry in data if entry["name"] != name]
     data.append({"name": name, "score": score})
     data.sort(key=lambda x: x["score"], reverse=True)
     with open(ranking_file, "w") as f:
-        json.dump(data[:10], f, indent=2)  # Top 10만 저장
+        json.dump(data, f, indent=2)
+        f.flush() # 파일 시스템에 즉시 반영
+        os.fsync(f.fileno()) # 디스크에 강제 기록록
+
+def get_player_rank(name):
+    if not os.path.exists(ranking_file):
+        print("파일 없음")
+        return None
+    with open(ranking_file, "r") as f:
+        try:
+            data = json.load(f)
+            print(f"불러온 데이터: {data}")
+            for idx, entry in enumerate(data):
+                print(f"비교중: {entry['name']} == {name}")
+                if entry["name"] == name:
+                    print(f"매칭된 등수: {idx+1}")
+                    return idx + 1  # 등수는 1부터 시작
+        except json.JSONDecodeError:
+            print("JSON 파싱 실패")
+            pass
+    return None
+
+def reset_game_state():
+    global score, round_count, total_accuracy_score, cheat_index
+    global all_recipes, current_recipe, items_on_screen, held_item, burger_start_time
+
+    score = 0
+    round_count = 0
+    total_accuracy_score = 0
+    cheat_index = 0
+    items_on_screen.clear()
+    held_item = None
+
+    all_recipes = []
+    for _ in range(20):
+        recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
+        all_recipes.append(recipe)
+
+    current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
+    burger_start_time = time.time()
+
 
 def draw_input_modal():
     pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 + 120, 400, 80), border_radius=12)
     pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 + 120, 400, 80), 2, border_radius=12)
     input_text = font.render(f"Enter your name: {user_input}", True, BLACK)
     screen.blit(input_text, input_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 160)))
+
+def draw_overwrite_prompt():
+    # 중앙에 메시지 박스
+    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 250, SCREEN_HEIGHT//2 - 40, 500, 150), border_radius=12)
+    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 250, SCREEN_HEIGHT//2 - 40, 500, 150), 2, border_radius=12)
+    
+    warning_text = font.render("Your name is duplicated. Do you want to overwrite?", True, BLACK)
+    screen.blit(warning_text, warning_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)))
+
+    # Yes 버튼
+    pygame.draw.rect(screen, DARK_GRAY, overwrite_buttons["yes"], border_radius=6)
+    yes_text = font.render("Yes", True, WHITE)
+    screen.blit(yes_text, yes_text.get_rect(center=overwrite_buttons["yes"].center))
+
+    # No 버튼
+    pygame.draw.rect(screen, DARK_GRAY, overwrite_buttons["no"], border_radius=6)
+    no_text = font.render("No", True, WHITE)
+    screen.blit(no_text, no_text.get_rect(center=overwrite_buttons["no"].center))
 
 
 clock = pygame.time.Clock()
@@ -75,20 +140,32 @@ running = True
 #rect = IMAGE.get_rect()
 #rect.center = (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2)
 
+# 중복 이름 덮어쓰기 관련
+overwrite_prompt_active = False        # 중복 이름 여부 묻는 상태
+overwrite_pending_name = ""            # 중복된 이름
+overwrite_buttons = {
+    "yes": pygame.Rect(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 + 40, 80, 40),
+    "no": pygame.Rect(SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT//2 + 40, 80, 40)
+}
+
+
 start_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
 start_button_img = pygame.transform.scale(start_button_img, (450, 150))
 start_button_img.set_colorkey((255, 255, 255))
 start_button_rect = start_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 2, SCREEN_HEIGHT // 2 + 400))
 
-quit_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
-quit_button_img = pygame.transform.scale(quit_button_img, (450, 150))
-quit_button_img.set_colorkey((255, 255, 255))
-quit_button_rect = quit_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 523, SCREEN_HEIGHT // 2 + 400))
+leaderboard_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
+leaderboard_button_img = pygame.transform.scale(leaderboard_button_img, (450, 150))
+leaderboard_button_img.set_colorkey((255, 255, 255))
+leaderboard_button_rect = leaderboard_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 523, SCREEN_HEIGHT // 2 + 400))
 
 option_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
 option_button_img = pygame.transform.scale(option_button_img, (450, 150))
 option_button_img.set_colorkey((255, 255, 255))
 option_button_rect = option_button_img.get_rect(center=(SCREEN_WIDTH // 2 - 530, SCREEN_HEIGHT // 2 + 400))
+
+# 우측 상단 X 버튼 생성
+exit_button_rect = pygame.Rect(SCREEN_WIDTH - 80, 20, 50, 50)
 
 hand_status = "Detecting hand..."
 prev_hand_status = "None"
@@ -148,7 +225,7 @@ def draw_menu():
     # 버튼 이미지
     screen.blit(start_button_img, start_button_rect)
     screen.blit(option_button_img, option_button_rect)
-    screen.blit(quit_button_img, quit_button_rect)
+    screen.blit(leaderboard_button_img, leaderboard_button_rect)
 
     # Play 텍스트
     play_text = big_font.render("Play", True, WHITE)
@@ -159,13 +236,94 @@ def draw_menu():
     option_text = big_font.render("Options", True, WHITE)
     option_rect = option_text.get_rect(center=option_button_rect.center)
     screen.blit(option_text, option_rect)
+    
+    # LeaderBoard 텍스트
+    leaderboard_text = big_font.render("LeaderBoard", True, WHITE)
+    leaderboard_rect = leaderboard_text.get_rect(center=leaderboard_button_rect.center)
+    screen.blit(leaderboard_text, leaderboard_rect)
 
-    # Quit 텍스트
-    quit_text = big_font.render("Quit", True, WHITE)
-    quit_rect = quit_text.get_rect(center=quit_button_rect.center)
-    screen.blit(quit_text, quit_rect)
+    # 우측 상단 종료 버튼 (빨간 박스 + X)
+    pygame.draw.rect(screen, RED, exit_button_rect)
+    x_font = pygame.font.SysFont(None, 40)
+    x_text = x_font.render("X", True, WHITE)
+    x_rect = x_text.get_rect(center=exit_button_rect.center)
+    screen.blit(x_text, x_rect)
+
+    # Saved! 메시지 (1회용)
+    global menu_saved_message_timer, menu_saved_message_alpha, menu_saved_rank
+    if menu_saved_message_timer > 0:
+        saved_font = pygame.font.SysFont(None, 72)
+        message = "Saved!"
+        if menu_saved_rank is not None:
+            message += f" You are ranked #{menu_saved_rank}"
+        saved_surface = saved_font.render(message, True, (0, 150, 0))
+        saved_surface.set_alpha(menu_saved_message_alpha)
+        
+        # 메시지 위치 계산
+        text_rect = saved_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 0))
+        
+        # 반투명 배경 Surface 만들기
+        background_surface = pygame.Surface((text_rect.width + 40, text_rect.height + 20), pygame.SRCALPHA)
+        background_surface.fill((255, 255, 255, 180))  # 흰색, 약간 투명
+
+        # 배경 박스를 텍스트보다 먼저 blit
+        screen.blit(background_surface, background_surface.get_rect(center=text_rect.center))
+
+        # 텍스트 그리기
+        screen.blit(saved_surface, text_rect)
+
+        
+        menu_saved_message_timer -= 1
+        if menu_saved_message_timer < 30:
+            menu_saved_message_alpha = max(0, int(255 * (menu_saved_message_timer / 30)))
+
 
     pygame.display.flip()
+
+def leaderboard_screen():
+    back_button = pygame.Rect(60, SCREEN_HEIGHT - 80, 160, 50)
+
+    # 랭킹 데이터 불러오기
+    rankings = []
+    if os.path.exists(ranking_file):
+        with open(ranking_file, "r") as f:
+            try:
+                rankings = json.load(f)
+            except json.JSONDecodeError:
+                rankings = []
+
+    while True:
+        screen.fill(WHITE)
+        title = big_font.render("LeaderBoard", True, BLACK)
+        screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 100)))
+
+        # 탑10 순위 출력
+        for i, entry in enumerate(rankings[:10]):
+            if i == 0:
+                rank_text = font.render(f"{i+1}st  {entry['name']} - ${entry['score']}", True, BLACK)
+            elif i == 1 :
+                rank_text = font.render(f"{i+1}nd  {entry['name']} - ${entry['score']}", True, BLACK)
+            elif i == 2:
+                rank_text = font.render(f"{i+1}rd  {entry['name']} - ${entry['score']}", True, BLACK)
+            else:
+                rank_text = font.render(f"{i+1}th  {entry['name']} - ${entry['score']}", True, BLACK)
+
+            screen.blit(rank_text, (SCREEN_WIDTH//2 - 200, 180 + i * 50))
+
+        # 뒤로가기 버튼
+        pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
+        screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if back_button.collidepoint(event.pos):
+                    return
+
 
 def draw_status():
     elapsed = int(time.time() - start_time) - 1
@@ -261,10 +419,14 @@ def end_game():
     global running, menu_active, score, round_count, total_accuracy_score, current_recipe, all_recipes, cheat_index
     global input_active, user_input
     global saved_message_timer, saved_message_alpha
+    global overwrite_prompt_active, overwrite_pending_name
+    global menu_saved_message_timer, menu_saved_message_alpha, menu_saved_rank
 
     leave_record_button_rect = pygame.Rect(SCREEN_WIDTH//2 - 120, SCREEN_HEIGHT//2 + 100, 240, 50)
     input_active = False
     user_input = ""
+    auto_return_start = time.time()  # 자동 타이머 시작
+    AUTO_RETURN_LIMIT = 10  # 자동 전환까지 10초
 
     while True:
         screen.fill(GRAY)
@@ -287,31 +449,55 @@ def end_game():
         if input_active:
             draw_input_modal()
 
-        # 저장 완료 메시지 그리기
-        if saved_message_timer > 0:
-            saved_surface = font.render("Saved!", True, (0, 150, 0))
-            saved_surface.set_alpha(saved_message_alpha)
-            screen.blit(saved_surface, saved_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 200)))
-            saved_message_timer -= 1
-            if saved_message_timer < 30:
-                saved_message_alpha = max(0, int(255 * (saved_message_timer / 30)))  # 부드럽게 사라지도록
+        if overwrite_prompt_active:
+            draw_overwrite_prompt()
+
+        # 10초 이상 아무 입력 없으면 자동 메뉴 복귀
+        if time.time() - auto_return_start > 10:
+            reset_game_state()
+            menu_active = True
+            return
+        
+        # 자동 복귀 안내 메시지
+        remaining = AUTO_RETURN_LIMIT - int(time.time() - auto_return_start)
+        if remaining <= AUTO_RETURN_LIMIT and remaining > 0:
+            hint_text = font.render(f"Returning to menu in {remaining} seconds...", True, DARK_GRAY)
+            screen.blit(hint_text, hint_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40)))
 
         pygame.display.flip()
 
         for event in pygame.event.get():
+            auto_return_start = time.time()  # 입력 발생 → 타이머 초기화
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             elif event.type == pygame.KEYDOWN:
                 if input_active:
                     if event.key == pygame.K_RETURN and user_input.strip():
-                        save_score(user_input.strip(), score)
+                        name = user_input.strip()
+                        if os.path.exists(ranking_file):
+                            with open(ranking_file, "r") as f:
+                                try:
+                                    data = json.load(f)
+                                    if any(entry["name"] == name for entry in data):
+                                        overwrite_pending_name = name
+                                        overwrite_prompt_active = True
+                                        input_active = False
+                                        continue
+                                except json.JSONDecodeError:
+                                    pass
+                        save_score(name, score)
                         input_active = False
                         user_input = ""
 
                         # 저장 메시지 초기화
-                        saved_message_timer = 120  # 2초 정도 유지 (60프레임 기준)
-                        saved_message_alpha = 255
+                        menu_saved_rank = get_player_rank(name)
+                        menu_saved_message_timer = 50
+                        menu_saved_message_alpha = 255
+
+                        reset_game_state()
+                        menu_active = True
+                        return
                     elif event.key == pygame.K_BACKSPACE:
                         user_input = user_input[:-1]
                     else:
@@ -323,22 +509,34 @@ def end_game():
                         sys.exit()
                     elif event.key == pygame.K_SPACE:
                         # 상태 초기화
+                        
+                        reset_game_state()
                         menu_active = True
-                        score = 0
-                        round_count = 0
-                        total_accuracy_score = 0
-                        cheat_index = 0
-                        all_recipes = []
-                        for _ in range(20):
-                            recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
-                            all_recipes.append(recipe)
-                        current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
                         return
+                    
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if leave_record_button_rect.collidepoint(event.pos):
                     input_active = True
+                elif event.type == pygame.MOUSEBUTTONDOWN and overwrite_prompt_active:
+                    if overwrite_buttons["yes"].collidepoint(event.pos):
+                        save_score(overwrite_pending_name, score, overwrite=True)
+                        overwrite_prompt_active = False
+                        input_active = False
+                        # 메뉴용 Saved! 활성화
+                        menu_saved_rank = get_player_rank(name)
+                        menu_saved_message_timer = 50
+                        menu_saved_message_alpha = 255
+                        reset_game_state()
+                        menu_active = True  # 메인 메뉴 돌아가기
+                        
+                        return  # end_game 탈출
+                    elif overwrite_buttons["no"].collidepoint(event.pos):
+                        overwrite_prompt_active = False
+                        input_active = True
+                        user_input = ""
 
-
+# end_game()
+# ================================================================
 
 while running:
     if menu_active:
@@ -351,8 +549,10 @@ while running:
                     menu_active = False
                     start_time = time.time()
                     burger_start_time = time.time()
-                elif quit_button_rect.collidepoint(event.pos):
+                elif exit_button_rect.collidepoint(event.pos):
                     running = False
+                elif leaderboard_button_rect.collidepoint(event.pos):
+                    leaderboard_screen()
         continue
 
     screen.fill(GRAY)
