@@ -97,7 +97,7 @@ def reset_game_state():
 
     all_recipes = []
     for _ in range(burger_goal):
-        recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
+        recipe = ["bottom_bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["top_bun"]
         all_recipes.append(recipe)
 
     current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
@@ -138,10 +138,6 @@ menu_active = True
 running = True
 
 burger_goal = 10
-
-#option_button = pygame.image.load('an_image.png').convert()
-#rect = IMAGE.get_rect()
-#rect.center = (SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2)
 
 # 중복 이름 덮어쓰기 관련
 overwrite_prompt_active = False        # 중복 이름 여부 묻는 상태
@@ -184,7 +180,7 @@ ITEM_RADIUS = 50
 PLATE_RADIUS = 100
 plate_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 60)
 
-ingredient_names = ["bun", "lettuce", "patty", "bacon", "pickle", "tomato"]
+ingredient_names = ["top_bun", "bottom_bun", "patty", "bacon", "lettuce", "pickle", "tomato", "onion", "cheese"]
 ingredient_spawns = {}
 spacing = ITEM_RADIUS * 2 + 20
 start_x = (SCREEN_WIDTH - (spacing * (len(ingredient_names) - 1))) // 2
@@ -192,14 +188,19 @@ start_y = SCREEN_HEIGHT - ITEM_RADIUS - 40
 for i, name in enumerate(ingredient_names):
     ingredient_spawns[name] = (start_x + i * spacing, start_y)
 
-ingredient_colors = {
-    "bun": BROWN,
-    "lettuce": GREEN,
-    "patty": DARK_RED,
-    "bacon": PINK,
-    "pickle": OLIVE,
-    "tomato": TOMATO
-}
+ingredient_images = {}
+for name in ingredient_names:
+    # load the “item” icon
+    img_item = pygame.image.load(f"resources/images/{name}_item.png").convert_alpha()
+    img_item.set_colorkey(WHITE)
+    # load the “in stain” icon
+    img_stain = pygame.image.load(f"resources/images/{name}_in_stain.png").convert_alpha()
+    img_stain.set_colorkey(WHITE)
+    # store as a dict for clarity
+    ingredient_images[name] = {
+        "item": img_item,
+        "in_stain": img_stain
+    }
 
 reset_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 +50, 160, 60)
 submit_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 -150, 200, 150)
@@ -511,17 +512,23 @@ def draw_buttons():
     screen.blit(text3, text3.get_rect(center=submit_button_rect.center))
 
 def draw_recipe(recipe):
-    x, y = int(SCREEN_WIDTH * 0.03), int(SCREEN_HEIGHT * 0.6)
+    # starting X/Y
+    x = int(SCREEN_WIDTH * 0.03)
+    y = int(SCREEN_HEIGHT * 0.60)
 
-    # 레시피 원 고정 반응형 사이즈 (기준: 1080p 화면 높이)
+    # base for scaling icons (you can tweak the 60 → whatever pixel size you like)
     BASE_SCREEN_HEIGHT = 1080
-    RECIPE_RADIUS = int(30 * (SCREEN_HEIGHT / BASE_SCREEN_HEIGHT))  # 화면 비율 기준 유지
+    ICON_SIZE = int(60 * (SCREEN_HEIGHT / BASE_SCREEN_HEIGHT))
 
     for ingredient in reversed(recipe):
-        color = ingredient_colors.get(ingredient, WHITE)
-        pygame.draw.circle(screen, color, (x, y), RECIPE_RADIUS)
-        pygame.draw.circle(screen, WHITE, (x, y), RECIPE_RADIUS, 2)
-        y += RECIPE_RADIUS * 2 - 10
+        # pick which image to show (usually “item” for recipe preview)
+        img = ingredient_images[ingredient]["item"]
+        # scale it to a uniform square
+        img_scaled = pygame.transform.scale(img, (ICON_SIZE, ICON_SIZE))
+        # center it on (x, y)
+        screen.blit(img_scaled, (x - ICON_SIZE // 2, y - ICON_SIZE // 2))
+        # move down for the next one (+10px padding)
+        y += ICON_SIZE + 10
 
 def get_camera_surface():
     global hand_status, message_alpha, message_timer, hand_screen_pos
@@ -754,19 +761,27 @@ while running:
             elif event.key == pygame.K_ESCAPE:
                 end_game()
     pygame.draw.circle(screen, DARK_GRAY, plate_pos, PLATE_RADIUS)
+
     for idx, item in enumerate(reversed(items_on_screen)):
         y_offset = -idx * (ITEM_RADIUS // 2)
         draw_pos = (plate_pos[0], plate_pos[1] + y_offset)
-        pygame.draw.circle(screen, ingredient_colors[item["type"]], draw_pos, ITEM_RADIUS)
-        pygame.draw.circle(screen, WHITE, draw_pos, ITEM_RADIUS, 2)
+        # ── 이미지로 그리기 ──
+        img = ingredient_images[item["type"]]["in_stain"]
+        img_s = pygame.transform.scale(img, (ITEM_RADIUS*2, ITEM_RADIUS*2))
+        screen.blit(img_s, (draw_pos[0] - ITEM_RADIUS, draw_pos[1] - ITEM_RADIUS))
 
     if held_item:
-        pygame.draw.circle(screen, ingredient_colors[held_item["type"]], held_item["pos"], ITEM_RADIUS)
-        pygame.draw.circle(screen, WHITE, held_item["pos"], ITEM_RADIUS, 2)
+        # ── 이미지로 그리기 ──
+        img = ingredient_images[held_item["type"]]["item"]
+        img_s = pygame.transform.scale(img, (ITEM_RADIUS*2, ITEM_RADIUS*2))
+        pos = held_item["pos"]
+        screen.blit(img_s, (pos[0] - ITEM_RADIUS, pos[1] - ITEM_RADIUS))
 
     for name, pos in ingredient_spawns.items():
-        pygame.draw.circle(screen, ingredient_colors[name], pos, ITEM_RADIUS)
-        pygame.draw.circle(screen, WHITE, pos, ITEM_RADIUS, 2)
+        # ── _in_stain 이미지로 그리기 ──
+        img = ingredient_images[name]["in_stain"]
+        img_s = pygame.transform.scale(img, (ITEM_RADIUS*2, ITEM_RADIUS*2))
+        screen.blit(img_s, (pos[0] - ITEM_RADIUS, pos[1] - ITEM_RADIUS))
 
     draw_buttons()
     if current_recipe:
