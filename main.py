@@ -185,17 +185,76 @@ burger_start_time = time.time()
 reset_game_state()
 
 
-# 메뉴 버튼 위치 비율 전역 변수 (main.py 상단 어딘가에 선언되어 있어야 함)
-MENU_BUTTON_Y_RATIO = 0.75
-MENU_BUTTON_X_SPACING_RATIO = 0.2
-MENU_BUTTON_WIDTH_RATIO = 0.2  # 화면 너비의 20%
-MENU_BUTTON_HEIGHT_RATIO = 0.14  # 화면 높이의 14%
+# 메뉴 버튼 위치 비율 전역 변수
+MENU_BUTTON_Y_RATIO = 0.88
+MENU_BUTTON_WIDTH_RATIO = 0.18
+MENU_BUTTON_HEIGHT_RATIO = 0.12
+
+# 개별 버튼 X 위치 비율
+OPTION_X_RATIO = 0.25
+PLAY_X_RATIO = 0.5
+QUIT_X_RATIO = 0.75
+
+
+# 메뉴 버튼 위치 비율 전역 변수
+MENU_BUTTON_Y_RATIO = 0.88
+MENU_BUTTON_WIDTH_RATIO = 0.18  # 화면 너비의 18%
+MENU_BUTTON_HEIGHT_RATIO = 0.12  # 화면 높이의 12%
+
+# 개별 버튼 X 위치 비율
+OPTION_X_RATIO = 0.23
+PLAY_X_RATIO = 0.5
+QUIT_X_RATIO = 0.77
+
+# 인게임 반응형 요소 비율
+STATUS_FONT_RATIO = 0.035
+ITEM_RADIUS_RATIO = 0.03
+PLATE_RADIUS_RATIO = 0.08
+CAMERA_WIDTH_RATIO = 0.3
+CAMERA_HEIGHT_RATIO = 0.3
+
+status_font = pygame.font.SysFont(None, 36)
+
+# 인게임 반응형 값 설정 (main loop 진입 직후 호출)
+def apply_responsive_scaling():
+    global ITEM_RADIUS, PLATE_RADIUS, status_font, camera_surface, plate_pos
+    global ingredient_spawns, reset_button_rect, submit_button_rect
+
+    # 반응형 크기 설정
+    ITEM_RADIUS = int(SCREEN_WIDTH * ITEM_RADIUS_RATIO)
+    PLATE_RADIUS = int(SCREEN_WIDTH * PLATE_RADIUS_RATIO)
+    status_font = pygame.font.SysFont(None, int(SCREEN_HEIGHT * STATUS_FONT_RATIO))
+    camera_surface = pygame.Surface((
+        int(SCREEN_WIDTH * CAMERA_WIDTH_RATIO),
+        int(SCREEN_HEIGHT * CAMERA_HEIGHT_RATIO)
+    ))
+
+
+    # 접시 위치
+    plate_pos = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - ITEM_RADIUS * 2)
+
+    # 재료 위치 (하단 중앙 정렬)
+    spacing = ITEM_RADIUS * 2 + 20
+    start_x = (SCREEN_WIDTH - (spacing * (len(ingredient_names) - 1))) // 2
+    start_y = SCREEN_HEIGHT - ITEM_RADIUS - 40
+    for i, name in enumerate(ingredient_names):
+        ingredient_spawns[name] = (start_x + i * spacing, start_y)
+
+    # 버튼 위치 (우측 중간, 화면 비율 기반)
+    reset_button_rect = pygame.Rect(SCREEN_WIDTH - int(SCREEN_WIDTH * 0.18),
+                                     SCREEN_HEIGHT // 2 + int(SCREEN_HEIGHT * 0.05),
+                                     int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.08))
+    submit_button_rect = pygame.Rect(SCREEN_WIDTH - int(SCREEN_WIDTH * 0.18),
+                                      SCREEN_HEIGHT // 2 - int(SCREEN_HEIGHT * 0.18),
+                                      int(SCREEN_WIDTH * 0.12), int(SCREEN_HEIGHT * 0.2))
 
 
 def draw_menu():
-    center_x = SCREEN_WIDTH // 2
-    center_y = int(SCREEN_HEIGHT * MENU_BUTTON_Y_RATIO)
-    spacing = int(SCREEN_WIDTH * MENU_BUTTON_X_SPACING_RATIO)
+    # 버튼 중심 좌표
+    option_x = int(SCREEN_WIDTH * OPTION_X_RATIO)
+    play_x = int(SCREEN_WIDTH * PLAY_X_RATIO)
+    quit_x = int(SCREEN_WIDTH * QUIT_X_RATIO)
+    button_y = int(SCREEN_HEIGHT * MENU_BUTTON_Y_RATIO)
 
     # 버튼 이미지 크기 계산
     button_width = int(SCREEN_WIDTH * MENU_BUTTON_WIDTH_RATIO)
@@ -209,9 +268,9 @@ def draw_menu():
     start_button_rect.size = (button_width, button_height)
     option_button_rect.size = (button_width, button_height)
     quit_button_rect.size = (button_width, button_height)
-    start_button_rect.center = (center_x, center_y)
-    option_button_rect.center = (center_x - spacing, center_y)
-    quit_button_rect.center = (center_x + spacing, center_y)
+    start_button_rect.center = (play_x, button_y)
+    option_button_rect.center = (option_x, button_y)
+    quit_button_rect.center = (quit_x, button_y)
 
     main_menu_bg = pygame.image.load('resources/images/main_menu_bg.png').convert()
     main_menu_bg = pygame.transform.scale(main_menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
@@ -222,18 +281,22 @@ def draw_menu():
     screen.blit(scaled_option_button, option_button_rect)
     screen.blit(scaled_quit_button, quit_button_rect)
 
+    # 텍스트 크기 비율에 따라 동적으로 설정
+    font_size = max(24, int(SCREEN_HEIGHT * 0.065))  # 해상도에 따라 크게 조절, 최소 24
+    responsive_font = pygame.font.SysFont(None, font_size)
+
     # Play 텍스트
-    play_text = big_font.render("Play", True, WHITE)
+    play_text = responsive_font.render("Play", True, WHITE)
     play_rect = play_text.get_rect(center=start_button_rect.center)
     screen.blit(play_text, play_rect)
 
     # Option 텍스트
-    option_text = big_font.render("Options", True, WHITE)
+    option_text = responsive_font.render("Options", True, WHITE)
     option_rect = option_text.get_rect(center=option_button_rect.center)
     screen.blit(option_text, option_rect)
 
     # Quit 텍스트
-    quit_text = big_font.render("Quit", True, WHITE)
+    quit_text = responsive_font.render("Quit", True, WHITE)
     quit_rect = quit_text.get_rect(center=quit_button_rect.center)
     screen.blit(quit_text, quit_rect)
 
@@ -249,6 +312,8 @@ def draw_menu():
             menu_saved_message_alpha = max(0, int(255 * (menu_saved_message_timer / 30)))
 
     pygame.display.flip()
+
+
 
 
 def option_screen():
@@ -325,6 +390,7 @@ def option_screen():
                     else:
                         SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                    apply_responsive_scaling()
 
                     # 메뉴 버튼 위치 재계산
                     start_button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + button_height * 3)
@@ -337,31 +403,32 @@ def option_screen():
 
 def draw_status():
     elapsed = int(time.time() - start_time) - 1
-    time_text = font.render(f"Time: {elapsed}s", True, BLACK)
-    score_text = font.render(f"Score: {score}", True, BLACK)
-    round_text = font.render(f"Burger {round_count + 1} / {burger_goal}", True, BLACK)  # 햄버거 개수 출력
+    time_text = status_font.render(f"Time: {elapsed}s", True, BLACK)
+    score_text = status_font.render(f"Score: {score}", True, BLACK)
+    round_text = status_font.render(f"Burger {round_count + 1} / {burger_goal}", True, BLACK)  # 햄버거 개수 출력
     screen.blit(time_text, time_text.get_rect(center=(SCREEN_WIDTH // 2, 30)))
     screen.blit(score_text, score_text.get_rect(center=(SCREEN_WIDTH // 2, 70)))
     screen.blit(round_text, round_text.get_rect(center=(SCREEN_WIDTH // 2, 110)))
 
 def draw_buttons():
     pygame.draw.rect(screen, DARK_GRAY, reset_button_rect, border_radius=8)
-    text2 = font.render("Reset", True, WHITE)
+    text2 = status_font.render("Reset", True, WHITE)
     screen.blit(text2, text2.get_rect(center=reset_button_rect.center))
     pygame.draw.rect(screen, BLUE, submit_button_rect, border_radius=8)
-    text3 = font.render("Bell", True, WHITE)
+    text3 = status_font.render("Bell", True, WHITE)
     screen.blit(text3, text3.get_rect(center=submit_button_rect.center))
 
 def draw_recipe(recipe):
-    x, y = 60, 500
+    x, y = int(SCREEN_WIDTH * 0.03), int(SCREEN_HEIGHT * 0.4)
     for ingredient in reversed(recipe):
         color = ingredient_colors.get(ingredient, WHITE)
-        pygame.draw.circle(screen, color, (x, y), 30)
-        pygame.draw.circle(screen, WHITE, (x, y), 30, 2)
-        y += 50
+        pygame.draw.circle(screen, color, (x, y), ITEM_RADIUS)
+        pygame.draw.circle(screen, WHITE, (x, y), ITEM_RADIUS, 2)
+        y += ITEM_RADIUS * 2 - 10
 
 def get_camera_surface():
     global hand_status, message_alpha, message_timer, hand_screen_pos
+    
     ret, frame = cap.read()
     if not ret:
         return None
@@ -391,7 +458,10 @@ def get_camera_surface():
             hand_screen_pos = (int(cx * SCREEN_WIDTH - x_offset), int(cy * SCREEN_HEIGHT + y_offset))
     frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
     frame = np.rot90(frame)
-    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (800-200, 600-200))
+    return pygame.transform.scale(pygame.surfarray.make_surface(frame), (
+            int(SCREEN_WIDTH * CAMERA_WIDTH_RATIO),
+            int(SCREEN_HEIGHT * CAMERA_HEIGHT_RATIO)
+        ))
 
 def evaluate_recipe():
     global score, current_recipe, total_accuracy_score, round_count, burger_start_time
@@ -543,7 +613,6 @@ def end_game():
 # end_game 끝
 # =======================================================================
 
-
 while running:
     if menu_active:
         draw_menu()
@@ -601,7 +670,9 @@ while running:
 
     camera_surface = get_camera_surface()
     if camera_surface:
-        screen.blit(camera_surface, (0, 0))
+        camera_x = int(SCREEN_WIDTH * 0.01)  # 좌측 여백 1%
+        camera_y = int(SCREEN_HEIGHT * 0.01)  # 상단 여백 1%
+        screen.blit(camera_surface, (camera_x, camera_y))
 
     if hand_screen_pos and hand_status == "Fist" and prev_hand_status != "Fist":
         if reset_button_rect.collidepoint(hand_screen_pos):
