@@ -65,6 +65,7 @@ def save_score(name, score, overwrite=False):
 def reset_game_state():
     global score, round_count, total_accuracy_score, cheat_index
     global all_recipes, current_recipe, items_on_screen, held_item, burger_start_time
+    global burger_goal
 
     score = 0
     round_count = 0
@@ -74,7 +75,7 @@ def reset_game_state():
     held_item = None
 
     all_recipes = []
-    for _ in range(20):
+    for _ in range(burger_goal):
         recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
         all_recipes.append(recipe)
 
@@ -176,21 +177,10 @@ ingredient_colors = {
 reset_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 +50, 160, 60)
 submit_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 -150, 200, 150)
 
-all_recipes = []
-for _ in range(20):
-    recipe = ["bun"] + random.sample(ingredient_names[1:], random.randint(2, 4)) + ["bun"]
-    all_recipes.append(recipe)
-
-current_recipe = all_recipes.pop(random.randrange(len(all_recipes)))
-
-start_time = time.time()
-score = 0
-total_accuracy_score = 0
-round_count = 0
-cheat_index = 0
 
 BURGER_TIME_LIMIT = 30
 burger_start_time = time.time()
+reset_game_state()
 
 def draw_menu():
     main_menu_bg = pygame.image.load('resources/images/main_menu_bg.png').convert()
@@ -229,6 +219,69 @@ def draw_menu():
             menu_saved_message_alpha = max(0, int(255 * (menu_saved_message_timer / 30)))
 
     pygame.display.flip()
+
+def option_screen():
+    global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen
+
+    burger_goal = 10  # 기본값
+    fullscreen = screen.get_flags() & pygame.FULLSCREEN != 0
+
+    minus_button = pygame.Rect(SCREEN_WIDTH//2 - 100, SCREEN_HEIGHT//2 - 50, 50, 50)
+    plus_button = pygame.Rect(SCREEN_WIDTH//2 + 50, SCREEN_HEIGHT//2 - 50, 50, 50)
+
+    window_button = pygame.Rect(SCREEN_WIDTH//2 - 150, SCREEN_HEIGHT//2 + 80, 140, 60)
+    full_button = pygame.Rect(SCREEN_WIDTH//2 + 10, SCREEN_HEIGHT//2 + 80, 140, 60)
+
+    back_button = pygame.Rect(60, SCREEN_HEIGHT - 80, 160, 50)
+
+    while True:
+        screen.fill(GRAY)
+
+        title = big_font.render("Options", True, BLACK)
+        screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 100)))
+
+        # 햄버거 개수 설정
+        screen.blit(font.render("Burgers to Make:", True, BLACK), (SCREEN_WIDTH//2 - 140, SCREEN_HEIGHT//2 - 110))
+        pygame.draw.rect(screen, DARK_GRAY, minus_button, border_radius=8)
+        pygame.draw.rect(screen, DARK_GRAY, plus_button, border_radius=8)
+        screen.blit(font.render("-", True, WHITE), font.render("-", True, WHITE).get_rect(center=minus_button.center))
+        screen.blit(font.render("+", True, WHITE), font.render("+", True, WHITE).get_rect(center=plus_button.center))
+
+        count_text = font.render(str(burger_goal), True, BLACK)
+        screen.blit(count_text, count_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 - 25)))
+
+        # 화면 모드 설정
+        screen.blit(font.render("Screen Mode:", True, BLACK), (SCREEN_WIDTH//2 - 140, SCREEN_HEIGHT//2 + 20))
+        pygame.draw.rect(screen, BLUE if not fullscreen else DARK_GRAY, window_button, border_radius=8)
+        pygame.draw.rect(screen, BLUE if fullscreen else DARK_GRAY, full_button, border_radius=8)
+        screen.blit(font.render("Windowed", True, WHITE), font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
+        screen.blit(font.render("Fullscreen", True, WHITE), font.render("Fullscreen", True, WHITE).get_rect(center=full_button.center))
+
+        # 뒤로가기
+        pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
+        screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if minus_button.collidepoint(event.pos):
+                    burger_goal = max(1, burger_goal - 1)
+                elif plus_button.collidepoint(event.pos):
+                    burger_goal = min(20, burger_goal + 1)
+                elif window_button.collidepoint(event.pos):
+                    fullscreen = False
+                elif full_button.collidepoint(event.pos):
+                    fullscreen = True
+                elif back_button.collidepoint(event.pos):
+                    # 적용 후 종료
+                    flags = pygame.FULLSCREEN if fullscreen else 0
+                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), flags)
+                    return
+
 
 def draw_status():
     elapsed = int(time.time() - start_time) - 1
@@ -368,7 +421,9 @@ def end_game():
         if remaining <= AUTO_RETURN_LIMIT and remaining > 0:
             hint_text = font.render(f"Returning to menu in {remaining} seconds...", True, DARK_GRAY)
             screen.blit(hint_text, hint_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40)))
-
+        
+        pygame.display.flip()
+        
         for event in pygame.event.get():
             auto_return_start = time.time()  # 입력 발생 → 타이머 초기화
             if event.type == pygame.QUIT:
@@ -436,7 +491,8 @@ def end_game():
                         input_active = True
                         user_input = ""
 
-
+# end_game 끝
+# =======================================================================
 
 
 while running:
@@ -452,6 +508,9 @@ while running:
                     burger_start_time = time.time()
                 elif quit_button_rect.collidepoint(event.pos):
                     running = False
+                elif option_button_rect.collidepoint(event.pos):
+                    option_screen()  # 옵션 화면 진입
+
         continue
 
     screen.fill(GRAY)
