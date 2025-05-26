@@ -1,42 +1,58 @@
 [
   {
-    "name": "hello2",
-    "score": 511
-  },
-  {
-    "name": "hi2",
-    "score": 406
-  },
-  {
     "name": "ys",
-    "score": 387
+    "score": 257
   },
   {
-    "name": "asd123",
-    "score": 385
+    "name": "luize",
+    "score": 128
   },
   {
-    "name": "hi1",
-    "score": 258
+    "name": "Player1",
+    "score": 100
   },
   {
-    "name": "hi3",
-    "score": 256
+    "name": "Player2",
+    "score": 95
   },
   {
-    "name": "papp1",
-    "score": 126
+    "name": "mario",
+    "score": 95
   },
   {
-    "name": "hello",
-    "score": 126
+    "name": "Player3",
+    "score": 90
   },
   {
-    "name": "hello1",
-    "score": 125
+    "name": "Player4",
+    "score": 85
   },
   {
-    "name": "asd",
-    "score": 0
+    "name": "Player5",
+    "score": 80
+  },
+  {
+    "name": "Player6",
+    "score": 75
+  },
+  {
+    "name": "Player7",
+    "score": 70
+  },
+  {
+    "name": "Player8",
+    "score": 65
+  },
+  {
+    "name": "betterlose",
+    "score": 65
+  },
+  {
+    "name": "waruiz",
+    "score": 51
+  },
+  {
+    "name": "loser",
+    "score": 31
   }
 ]

@@ -42,6 +42,7 @@ saved_message_alpha = 0
 # 메뉴에서 보여줄 저장 메시지
 menu_saved_message_timer = 0
 menu_saved_message_alpha = 0
+menu_saved_rank = None  # 몇 등인지 저장
 
 ranking_file = "ranking.json"
 input_active = False
@@ -60,7 +61,27 @@ def save_score(name, score, overwrite=False):
     data.append({"name": name, "score": score})
     data.sort(key=lambda x: x["score"], reverse=True)
     with open(ranking_file, "w") as f:
-        json.dump(data[:10], f, indent=2)
+        json.dump(data, f, indent=2)
+        f.flush() # 파일 시스템에 즉시 반영
+        os.fsync(f.fileno()) # 디스크에 강제 기록록
+
+def get_player_rank(name):
+    if not os.path.exists(ranking_file):
+        print("파일 없음")
+        return None
+    with open(ranking_file, "r") as f:
+        try:
+            data = json.load(f)
+            print(f"불러온 데이터: {data}")
+            for idx, entry in enumerate(data):
+                print(f"비교중: {entry['name']} == {name}")
+                if entry["name"] == name:
+                    print(f"매칭된 등수: {idx+1}")
+                    return idx + 1  # 등수는 1부터 시작
+        except json.JSONDecodeError:
+            print("JSON 파싱 실패")
+            pass
+    return None
 
 def reset_game_state():
     global score, round_count, total_accuracy_score, cheat_index
@@ -130,20 +151,24 @@ overwrite_buttons = {
     "no": pygame.Rect(SCREEN_WIDTH//2 + 20, SCREEN_HEIGHT//2 + 40, 80, 40)
 }
 
+
 start_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
 start_button_img = pygame.transform.scale(start_button_img, (450, 150))
 start_button_img.set_colorkey((255, 255, 255))
 start_button_rect = start_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 2, SCREEN_HEIGHT // 2 + 400))
 
-quit_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
-quit_button_img = pygame.transform.scale(quit_button_img, (450, 150))
-quit_button_img.set_colorkey((255, 255, 255))
-quit_button_rect = quit_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 523, SCREEN_HEIGHT // 2 + 400))
+leaderboard_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
+leaderboard_button_img = pygame.transform.scale(leaderboard_button_img, (450, 150))
+leaderboard_button_img.set_colorkey((255, 255, 255))
+leaderboard_button_rect = leaderboard_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 523, SCREEN_HEIGHT // 2 + 400))
 
 option_button_img = pygame.image.load("resources/images/button.png").convert_alpha()
 option_button_img = pygame.transform.scale(option_button_img, (450, 150))
 option_button_img.set_colorkey((255, 255, 255))
 option_button_rect = option_button_img.get_rect(center=(SCREEN_WIDTH // 2 - 530, SCREEN_HEIGHT // 2 + 400))
+
+# 우측 상단 X 버튼 생성
+exit_button_rect = pygame.Rect(SCREEN_WIDTH - 80, 20, 50, 50)
 
 hand_status = "Detecting hand..."
 prev_hand_status = "None"
@@ -276,10 +301,11 @@ def draw_menu():
     main_menu_bg = pygame.transform.scale(main_menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(main_menu_bg, (0, 0))
 
-    # 버튼 이미지 출력
+    # 버튼 이미지 출력 (반응형)
     screen.blit(scaled_start_button, start_button_rect)
     screen.blit(scaled_option_button, option_button_rect)
-    screen.blit(scaled_quit_button, quit_button_rect)
+    screen.blit(scaled_exit_button, exit_button_rect)
+    screen.blit(scaled_leaderboard_button, leaderboard_button_rect)
 
     # 텍스트 크기 비율에 따라 동적으로 설정
     font_size = max(24, int(SCREEN_HEIGHT * 0.065))  # 해상도에 따라 크게 조절, 최소 24
@@ -294,30 +320,54 @@ def draw_menu():
     option_text = responsive_font.render("Options", True, WHITE)
     option_rect = option_text.get_rect(center=option_button_rect.center)
     screen.blit(option_text, option_rect)
+    
+    # LeaderBoard 텍스트
+    leaderboard_text = responsive_font.render("LeaderBoard", True, WHITE)
+    leaderboard_rect = leaderboard_text.get_rect(center=leaderboard_button_rect.center)
+    screen.blit(leaderboard_text, leaderboard_rect)
 
-    # Quit 텍스트
-    quit_text = responsive_font.render("Quit", True, WHITE)
-    quit_rect = quit_text.get_rect(center=quit_button_rect.center)
-    screen.blit(quit_text, quit_rect)
+    # 우측 상단 종료 버튼 (빨간 박스 + X)
+    pygame.draw.rect(screen, RED, exit_button_icon_rect)
+    x_font = pygame.font.SysFont(None, 40)
+    x_text = x_font.render("X", True, WHITE)
+    x_rect = x_text.get_rect(center=exit_button_icon_rect.center)
+    screen.blit(x_text, x_rect)
+
 
     # Saved! 메시지 (1회용)
-    global menu_saved_message_timer, menu_saved_message_alpha
+    global menu_saved_message_timer, menu_saved_message_alpha, menu_saved_rank
     if menu_saved_message_timer > 0:
         saved_font = pygame.font.SysFont(None, 72)
-        saved_surface = saved_font.render("Saved!", True, (0, 150, 0))
+        message = "Saved!"
+        if menu_saved_rank is not None:
+            message += f" You are ranked #{menu_saved_rank}"
+        saved_surface = saved_font.render(message, True, (0, 150, 0))
         saved_surface.set_alpha(menu_saved_message_alpha)
-        screen.blit(saved_surface, saved_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 0)))
+        
+        # 메시지 위치 계산
+        text_rect = saved_surface.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 0))
+        
+        # 반투명 배경 Surface 만들기
+        background_surface = pygame.Surface((text_rect.width + 40, text_rect.height + 20), pygame.SRCALPHA)
+        background_surface.fill((255, 255, 255, 180))  # 흰색, 약간 투명
+
+        # 배경 박스를 텍스트보다 먼저 blit
+        screen.blit(background_surface, background_surface.get_rect(center=text_rect.center))
+
+        # 텍스트 그리기
+        screen.blit(saved_surface, text_rect)
+
+        
         menu_saved_message_timer -= 1
         if menu_saved_message_timer < 30:
             menu_saved_message_alpha = max(0, int(255 * (menu_saved_message_timer / 30)))
 
+
     pygame.display.flip()
-
-
-
 
 def option_screen():
     global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen
+    global exit_button_rect  # ← 버튼 위치 갱신을 위해 global 선언 필요
 
     fullscreen = screen.get_flags() & pygame.FULLSCREEN != 0
 
@@ -339,7 +389,7 @@ def option_screen():
     # 메뉴 화면 버튼 크기 및 위치 조정
     start_button_rect = start_button_img.get_rect(center=(center_x, center_y + button_height * 3))
     option_button_rect = option_button_img.get_rect(center=(center_x - button_width * 3, center_y + button_height * 3))
-    quit_button_rect = quit_button_img.get_rect(center=(center_x + button_width * 3, center_y + button_height * 3))
+    exit_button_rect = exit_button_img.get_rect(center=(center_x + button_width * 3, center_y + button_height * 3))  # 수정
 
     while True:
         screen.fill(GRAY)
@@ -364,7 +414,76 @@ def option_screen():
         screen.blit(font.render("Windowed", True, WHITE), font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
         screen.blit(font.render("Fullscreen", True, WHITE), font.render("Fullscreen", True, WHITE).get_rect(center=full_button.center))
 
-        # 뒤로가기
+        # 뒤로가기 버튼
+        pygame.draw.rect(screen, DARK_GRAY, back_button, border_radius=8)
+        screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if minus_button.collidepoint(event.pos):
+                    burger_goal = max(1, burger_goal - 1)
+                elif plus_button.collidepoint(event.pos):
+                    burger_goal += 1
+                elif window_button.collidepoint(event.pos):
+                    fullscreen = False
+                    SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
+                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+                elif full_button.collidepoint(event.pos):
+                    fullscreen = True
+                    SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
+                    screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
+                elif back_button.collidepoint(event.pos):
+                    return
+
+
+def leaderboard_screen():
+    back_button = pygame.Rect(60, SCREEN_HEIGHT - 80, 160, 50)
+
+    # 랭킹 데이터 불러오기
+    rankings = []
+    if os.path.exists(ranking_file):
+        with open(ranking_file, "r") as f:
+            try:
+                rankings = json.load(f)
+            except json.JSONDecodeError:
+                rankings = []
+
+    while True:
+        screen.fill(WHITE)
+        title = big_font.render("LeaderBoard", True, BLACK)
+        screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 100)))
+
+        # 탑10 순위 출력
+        for i, entry in enumerate(rankings[:10]):
+            if i == 0:
+                rank_text = font.render(f"{i+1}st  {entry['name']} - ${entry['score']}", True, BLACK)
+            elif i == 1 :
+                rank_text = font.render(f"{i+1}nd  {entry['name']} - ${entry['score']}", True, BLACK)
+            elif i == 2:
+                rank_text = font.render(f"{i+1}rd  {entry['name']} - ${entry['score']}", True, BLACK)
+            else:
+                rank_text = font.render(f"{i+1}th  {entry['name']} - ${entry['score']}", True, BLACK)
+
+            screen.blit(rank_text, (SCREEN_WIDTH//2 - 200, 180 + i * 50))
+
+        # 뒤로가기 버튼
+        pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
+        screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
+
+        pygame.display.flip()
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if back_button.collidepoint(event.pos):
+                    return
+
         pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
         screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
 
@@ -390,16 +509,16 @@ def option_screen():
                     else:
                         SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+
                     apply_responsive_scaling()
 
-                    # 메뉴 버튼 위치 재계산
+                    # 메뉴 버튼 위치 재계산 (변경된 변수명 반영)
                     start_button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + button_height * 3)
                     option_button_rect.center = (SCREEN_WIDTH // 2 - button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
-                    quit_button_rect.center = (SCREEN_WIDTH // 2 + button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
+                    exit_button_rect.center = (SCREEN_WIDTH // 2 + button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
 
                     reset_game_state()
-                    return
-
+                    return  # main 쪽 return도 포함
 
 def draw_status():
     elapsed = int(time.time() - start_time) - 1
@@ -510,7 +629,7 @@ def end_game():
     global input_active, user_input
     global saved_message_timer, saved_message_alpha
     global overwrite_prompt_active, overwrite_pending_name
-    global menu_saved_message_timer, menu_saved_message_alpha
+    global menu_saved_message_timer, menu_saved_message_alpha, menu_saved_rank
 
     leave_record_button_rect = pygame.Rect(SCREEN_WIDTH//2 - 120, SCREEN_HEIGHT//2 + 100, 240, 50)
     input_active = False
@@ -581,6 +700,7 @@ def end_game():
                         user_input = ""
 
                         # 저장 메시지 초기화
+                        menu_saved_rank = get_player_rank(name)
                         menu_saved_message_timer = 50
                         menu_saved_message_alpha = 255
 
@@ -609,6 +729,7 @@ def end_game():
                         overwrite_prompt_active = False
                         input_active = False
                         # 메뉴용 Saved! 활성화
+                        menu_saved_rank = get_player_rank(name)
                         menu_saved_message_timer = 50
                         menu_saved_message_alpha = 255
                         reset_game_state()
@@ -623,6 +744,7 @@ def end_game():
 # end_game 끝
 # =======================================================================
 
+
 while running:
     if menu_active:
         draw_menu()
@@ -634,11 +756,15 @@ while running:
                     menu_active = False
                     start_time = time.time()
                     burger_start_time = time.time()
-                elif quit_button_rect.collidepoint(event.pos):
+                    
+                elif exit_button_rect.collidepoint(event.pos):
                     running = False
+                    
                 elif option_button_rect.collidepoint(event.pos):
                     option_screen()  # 옵션 화면 진입
-
+                    
+                elif leaderboard_button_rect.collidepoint(event.pos):
+                    leaderboard_screen()
         continue
 
     screen.fill(GRAY)
