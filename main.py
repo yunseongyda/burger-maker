@@ -32,8 +32,12 @@ BROWN = (222, 184, 135)
 GREEN = (0, 200, 0)
 DARK_RED = (150, 0, 0)
 PINK = (255, 105, 180)
-OLIVE = (128, 128, 0)
-TOMATO = (255, 99, 71)
+
+vanishing_sfx = pygame.mixer.Sound("sounds/vanishing-sfx.mp3")
+grabbing_sfx = pygame.mixer.Sound("sounds/grabbing-sfx.mp3")
+click_sfx = pygame.mixer.Sound("sounds/button_click.mp3")
+click_sfx.set_volume(0.25)
+submit_sfx = pygame.mixer.Sound("sounds/submit-bell.mp3")
 
 # 손 상태 이미지 로드
 open_hand_img = pygame.image.load("images/opened-hand.png").convert_alpha()
@@ -229,7 +233,7 @@ for name in ingredient_names:
     }
 
 reset_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 +50, 160, 60)
-submit_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 -150, 200, 150)
+submit_button_rect = pygame.Rect(SCREEN_WIDTH - 400, SCREEN_HEIGHT //2 -150, 200, 150)
 
 
 BURGER_TIME_LIMIT = 30
@@ -515,17 +519,23 @@ def option_screen():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if minus_button.collidepoint(event.pos):
                     burger_goal = max(1, burger_goal - 1)
+                    click_sfx.play()
                 elif plus_button.collidepoint(event.pos):
                     burger_goal = min(20, burger_goal + 1)
+                    click_sfx.play()
                 elif window_button.collidepoint(event.pos):
                     fullscreen = False
+                    click_sfx.play()
                 elif full_button.collidepoint(event.pos):
                     fullscreen = True
+                    click_sfx.play()
                 elif back_button.collidepoint(event.pos):
                     if fullscreen:
+                        click_sfx.play()
                         SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
                     else:
+                        click_sfx.play()
                         SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                     apply_responsive_scaling()
@@ -587,6 +597,7 @@ def leaderboard_screen():
                 sys.exit()
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if back_button.collidepoint(event.pos):
+                    click_sfx.play()
                     return
 
 def draw_status():
@@ -606,7 +617,6 @@ def draw_buttons():
     
     # move 적용: 왼쪽으로 10px, 아래로 5px
     trashbin_rect = scaled_trashbin.get_rect(center=reset_button_rect.center)
-    trashbin_rect = trashbin_rect.move(-50, 5)
     screen.blit(scaled_trashbin, trashbin_rect)
 
     # Bell
@@ -826,6 +836,7 @@ def end_game():
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if leave_record_button_rect.collidepoint(event.pos):
+                    click_sfx.play()
                     input_active = True
                 elif overwrite_prompt_active:
                     if overwrite_buttons["yes"].collidepoint(event.pos):
@@ -859,21 +870,26 @@ while running:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 # 룰 페이지 열려 있고 닫기 버튼 클릭 시
                 if showing_rule_page and rule_close_button.collidepoint(event.pos):
+                    click_sfx.play()
                     showing_rule_page = False
 
                 # 말풍선 클릭 시 룰 페이지 열기
                 elif talk_balloon_area.collidepoint(event.pos):
+                    click_sfx.play()
                     showing_rule_page = True
 
                 if start_button_rect.collidepoint(event.pos):
+                    click_sfx.play()
                     menu_active = False
                     start_time = time.time()
                     burger_start_time = time.time()
                     
                 elif exit_button_rect.collidepoint(event.pos):
+                    click_sfx.play()
                     running = False
                     
                 elif option_button_rect.collidepoint(event.pos):
+                    click_sfx.play()
                     option_screen()  # 옵션 화면 진입
                     
                 elif leaderboard_button_rect.collidepoint(event.pos):
