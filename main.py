@@ -233,7 +233,7 @@ for name in ingredient_names:
     }
 
 reset_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 +50, 160, 60)
-submit_button_rect = pygame.Rect(SCREEN_WIDTH - 400, SCREEN_HEIGHT //2 -150, 200, 150)
+submit_button_rect = pygame.Rect(SCREEN_WIDTH - 400, SCREEN_HEIGHT //2 -150, 200, 200)
 
 
 BURGER_TIME_LIMIT = 30
@@ -304,7 +304,7 @@ def apply_responsive_scaling():
                                      int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.08))
     submit_button_rect = pygame.Rect(SCREEN_WIDTH - int(SCREEN_WIDTH * 0.18),
                                       SCREEN_HEIGHT // 2 - int(SCREEN_HEIGHT * 0.18),
-                                      int(SCREEN_WIDTH * 0.12), int(SCREEN_HEIGHT * 0.2))
+                                      int(SCREEN_WIDTH * 0.12), int(SCREEN_WIDTH * 0.12))
 
 
 def draw_menu():
@@ -622,7 +622,7 @@ def draw_buttons():
     # Bell
     bell_w = int(submit_button_rect.width * 0.9)
     bell_h = int(submit_button_rect.height * 0.9)
-    scaled_bell = pygame.transform.scale(bell_img, (bell_w, int(bell_h * 1.8)))
+    scaled_bell = pygame.transform.scale(bell_img, (bell_w, bell_h))
     
     # move 적용: 오른쪽으로 5px, 위로 5px
     bell_rect = scaled_bell.get_rect(center=submit_button_rect.center)
