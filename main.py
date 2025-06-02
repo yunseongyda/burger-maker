@@ -1,3 +1,5 @@
+# pip install -r requirements.txt
+
 import pygame
 import cv2
 import numpy as np
@@ -142,8 +144,8 @@ def draw_input_modal():
 
 def draw_overwrite_prompt():
     # 중앙에 메시지 박스
-    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 250, SCREEN_HEIGHT//2 - 40, 500, 150), border_radius=12)
-    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 250, SCREEN_HEIGHT//2 - 40, 500, 150), 2, border_radius=12)
+    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 350, SCREEN_HEIGHT//2 - 40, 700, 150), border_radius=12)
+    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 350, SCREEN_HEIGHT//2 - 40, 700, 150), 2, border_radius=12)
     
     warning_text = font.render("Your name is duplicated. Do you want to overwrite?", True, BLACK)
     screen.blit(warning_text, warning_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)))
@@ -232,8 +234,8 @@ for name in ingredient_names:
         "in_stain": img_stain
     }
 
-reset_button_rect = pygame.Rect(SCREEN_WIDTH - 300, SCREEN_HEIGHT //2 +50, 160, 60)
-submit_button_rect = pygame.Rect(SCREEN_WIDTH - 400, SCREEN_HEIGHT //2 -150, 200, 200)
+reset_button_rect = pygame.Rect(SCREEN_WIDTH - 350, SCREEN_HEIGHT //2 +50, 160, 60)
+submit_button_rect = pygame.Rect(SCREEN_WIDTH - 450, SCREEN_HEIGHT //2 -150, 200, 200)
 
 
 BURGER_TIME_LIMIT = 30
@@ -626,7 +628,6 @@ def draw_buttons():
     
     # move 적용: 오른쪽으로 5px, 위로 5px
     bell_rect = scaled_bell.get_rect(center=submit_button_rect.center)
-    bell_rect = bell_rect.move(-150, -5)
     screen.blit(scaled_bell, bell_rect)
 
 
