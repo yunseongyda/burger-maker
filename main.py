@@ -150,27 +150,63 @@ def reset_game_state():
 
 
 def draw_input_modal():
-    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 + 120, 400, 80), border_radius=12)
-    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 200, SCREEN_HEIGHT//2 + 120, 400, 80), 2, border_radius=12)
-    input_text = font.render(f"Enter your name: {user_input}", True, BLACK)
-    screen.blit(input_text, input_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + 160)))
+    BASE_WIDTH, BASE_HEIGHT = 1920, 1080
+    width_ratio = SCREEN_WIDTH / BASE_WIDTH
+    height_ratio = SCREEN_HEIGHT / BASE_HEIGHT
+
+    # Responsive font
+    font_size = int(36 * height_ratio)
+    responsive_font = pygame.font.SysFont(None, font_size)
+
+    # Responsive modal box
+    box_width = int(400 * width_ratio)
+    box_height = int(80 * height_ratio)
+    box_x = SCREEN_WIDTH/2 - box_width/2
+    box_y = SCREEN_HEIGHT/2 + int(120 * height_ratio)
+    pygame.draw.rect(screen, WHITE, (box_x, box_y, box_width, box_height), border_radius=12)
+    pygame.draw.rect(screen, BLACK, (box_x, box_y, box_width, box_height), 2, border_radius=12)
+    
+    # Responsive text
+    input_text = responsive_font.render(f"Enter your name: {user_input}", True, BLACK)
+    screen.blit(input_text, input_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2 + int(160 * height_ratio))))
 
 def draw_overwrite_prompt():
-    # 중앙에 메시지 박스
-    pygame.draw.rect(screen, WHITE, (SCREEN_WIDTH//2 - 350, SCREEN_HEIGHT//2 - 40, 700, 150), border_radius=12)
-    pygame.draw.rect(screen, BLACK, (SCREEN_WIDTH//2 - 350, SCREEN_HEIGHT//2 - 40, 700, 150), 2, border_radius=12)
+    BASE_WIDTH, BASE_HEIGHT = 1920, 1080
+    width_ratio = SCREEN_WIDTH / BASE_WIDTH
+    height_ratio = SCREEN_HEIGHT / BASE_HEIGHT
+
+    # Responsive font
+    font_size = int(36 * height_ratio)
+    responsive_font = pygame.font.SysFont(None, font_size)
+
+    # Responsive modal box
+    box_width = int(700 * width_ratio)
+    box_height = int(170 * height_ratio)
+    box_x = SCREEN_WIDTH/2 - box_width/2
+    box_y = SCREEN_HEIGHT/2 - box_height/2 + 25
+    pygame.draw.rect(screen, WHITE, (box_x, box_y, box_width, box_height), border_radius=12)
+    pygame.draw.rect(screen, BLACK, (box_x, box_y, box_width, box_height), 2, border_radius=12)
     
-    warning_text = font.render("Your name is duplicated. Do you want to overwrite?", True, BLACK)
+    # Responsive text
+    warning_text = responsive_font.render("Your name is duplicated. Do you want to overwrite?", True, BLACK)
     screen.blit(warning_text, warning_text.get_rect(center=(SCREEN_WIDTH//2, SCREEN_HEIGHT//2)))
 
-    # Yes 버튼
-    pygame.draw.rect(screen, DARK_GRAY, overwrite_buttons["yes"], border_radius=6)
-    yes_text = font.render("Yes", True, WHITE)
+    # Responsive buttons
+    button_width = int(80 * width_ratio)
+    button_height = int(40 * height_ratio)
+    yes_button_x = SCREEN_WIDTH//2 - button_width - int(20 * width_ratio)
+    no_button_x = SCREEN_WIDTH//2 + int(20 * width_ratio)
+    button_y = SCREEN_HEIGHT//2 + int(40 * height_ratio)
+
+    overwrite_buttons["yes"] = pygame.Rect(yes_button_x, button_y, button_width, button_height)
+    overwrite_buttons["no"] = pygame.Rect(no_button_x, button_y, button_width, button_height)
+
+    pygame.draw.rect(screen, GREEN, overwrite_buttons["yes"], border_radius=6)
+    yes_text = responsive_font.render("Yes", True, WHITE)
     screen.blit(yes_text, yes_text.get_rect(center=overwrite_buttons["yes"].center))
 
-    # No 버튼
-    pygame.draw.rect(screen, DARK_GRAY, overwrite_buttons["no"], border_radius=6)
-    no_text = font.render("No", True, WHITE)
+    pygame.draw.rect(screen, RED, overwrite_buttons["no"], border_radius=6)
+    no_text = responsive_font.render("No", True, WHITE)
     screen.blit(no_text, no_text.get_rect(center=overwrite_buttons["no"].center))
 
 
@@ -315,7 +351,7 @@ def apply_responsive_scaling():
     reset_button_rect = pygame.Rect(SCREEN_WIDTH - int(SCREEN_WIDTH * 0.18),
                                      SCREEN_HEIGHT // 2 + int(SCREEN_HEIGHT * 0.05),
                                      int(SCREEN_WIDTH * 0.1), int(SCREEN_HEIGHT * 0.08))
-    submit_button_rect = pygame.Rect(SCREEN_WIDTH - int(SCREEN_WIDTH * 0.18),
+    submit_button_rect = pygame.Rect(SCREEN_WIDTH - int(SCREEN_WIDTH * 0.28),
                                       SCREEN_HEIGHT // 2 - int(SCREEN_HEIGHT * 0.18),
                                       int(SCREEN_WIDTH * 0.12), int(SCREEN_WIDTH * 0.12))
 
