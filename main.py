@@ -139,6 +139,7 @@ def reset_game_state():
     cheat_index = 0
     items_on_screen.clear()
     held_item = None
+    round_scores.clear()
 
     all_recipes = []
     for _ in range(burger_goal):
@@ -219,6 +220,7 @@ menu_active = True
 running = True
 
 burger_goal = 10
+round_scores = []
 
 # 중복 이름 덮어쓰기 관련
 overwrite_prompt_active = False        # 중복 이름 여부 묻는 상태
@@ -792,7 +794,9 @@ def evaluate_recipe():
 
     total_accuracy_score += accuracy_score
     round_count += 1
-    score += accuracy_score + time_score
+    round_score = accuracy_score + time_score
+    round_scores.append(round_score)
+    score += round_score
 
     print(f"Submitted! Accuracy: {accuracy:.2f}, +{accuracy_score} points, Time bonus: {time_score}")
 
@@ -826,15 +830,58 @@ def end_game():
     clear_screen = pygame.transform.scale(clear_screen, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(clear_screen, (0, 0))
 
+    scroll_offset = 0
+    MAX_SCORES_DISPLAY = 5
+
     while True:
         screen.blit(clear_screen, (0, 0))
+
+        # 라운드별 점수 표시 (스크롤 기능 추가)
+        score_font_size = int(SCREEN_HEIGHT * 0.035)
+        score_font = pygame.font.SysFont(None, score_font_size)
+        score_list_x = SCREEN_WIDTH * 0.7 + 30
+
+        visible_scores = round_scores[scroll_offset:scroll_offset + MAX_SCORES_DISPLAY]
+        num_visible_scores = len(visible_scores)
+        line_height = int(SCREEN_HEIGHT * 0.05)
+        total_text_height = num_visible_scores * line_height
+        
+        block_start_y = (SCREEN_HEIGHT / 2) - (total_text_height / 2)
+
+        if round_scores:
+            padding = int(SCREEN_HEIGHT * 0.02)
+            box_width = int(SCREEN_WIDTH * 0.15)
+            box_height = total_text_height + (padding * 2)
+            box_x = score_list_x - (box_width / 2)
+            box_y = block_start_y - padding
+
+            panel_surface = pygame.Surface((box_width, box_height), pygame.SRCALPHA)
+            panel_surface.fill((255, 255, 255, 0))
+            screen.blit(panel_surface, (box_x, box_y))
+
+            # 스크롤 화살표 표시
+            scroll_font = pygame.font.SysFont(None, int(SCREEN_HEIGHT * 0.04))
+            if scroll_offset > 0:
+                up_arrow = scroll_font.render("^", True, PINK)
+                screen.blit(up_arrow, up_arrow.get_rect(center=(score_list_x, box_y - padding // 2)))
+            if scroll_offset + MAX_SCORES_DISPLAY < len(round_scores):
+                down_arrow = scroll_font.render("v", True, PINK)
+                screen.blit(down_arrow, down_arrow.get_rect(center=(score_list_x, box_y + box_height + padding // 2)))
+
+        for i, r_score in enumerate(visible_scores):
+            score_text = score_font.render(f"Burger {scroll_offset + i + 1}: ${r_score}", True, BLACK)
+            text_y = block_start_y + (i * line_height) + (line_height / 2)
+            text_rect = score_text.get_rect(center=(score_list_x, text_y))
+            screen.blit(score_text, text_rect)
+
+
         # 최종 점수 (오른쪽 하단)
         final_score = big_font.render(f"{score}", True, GREEN)
         screen.blit(final_score, final_score.get_rect(center=(SCREEN_WIDTH * 0.7, SCREEN_HEIGHT * 0.7)))
 
         # 중앙 안내 메시지 (창모드/전체화면 대응, 항상 중앙)
         center_msg_font = pygame.font.SysFont(None, int(SCREEN_HEIGHT * 0.04))  # 반응형 텍스트 크기
-        center_msg = center_msg_font.render("Press SPACE to return to Menu", True, DARK_GRAY)
+        center_msg = center_msg_font.render("Press SPACE or ESC to return to Menu", True, DARK_GRAY)
         screen.blit(center_msg, center_msg.get_rect(center=(SCREEN_WIDTH * 0.4, SCREEN_HEIGHT * 0.5)))
 
 
@@ -906,7 +953,7 @@ def end_game():
                         if len(user_input) < 10:
                             user_input += event.unicode
                 else:
-                    if event.key == pygame.K_SPACE:
+                    if event.key == pygame.K_SPACE or pygame.K_ESCAPE:
                         reset_game_state()
                         menu_active = True
                         return
@@ -933,6 +980,13 @@ def end_game():
                         user_input = ""
                         end_game()
                         return  # end_game 루프 탈출 → 외부에서 다시 호출
+                
+                # 스크롤 처리
+                if len(round_scores) > MAX_SCORES_DISPLAY:
+                    if event.button == 4:  # Scroll up
+                        scroll_offset = max(0, scroll_offset - 1)
+                    elif event.button == 5:  # Scroll down
+                        scroll_offset = min(len(round_scores) - MAX_SCORES_DISPLAY, scroll_offset + 1)
 
 # end_game 끝
 # =======================================================================
