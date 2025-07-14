@@ -208,8 +208,6 @@ option_button_img = pygame.transform.scale(option_button_img, (450, 150))
 option_button_img.set_colorkey((255, 255, 255))
 option_button_rect = option_button_img.get_rect(center=(SCREEN_WIDTH // 2 - 530, SCREEN_HEIGHT // 2 + 400))
 
-# 우측 상단 X 버튼 생성
-exit_button_rect = pygame.Rect(SCREEN_WIDTH - 80, 20, 50, 50)
 
 hand_status = "Detecting hand..."
 prev_hand_status = "None"
@@ -323,7 +321,7 @@ def apply_responsive_scaling():
 
 
 def draw_menu():
-    global talk_balloon_area
+    global talk_balloon_area, exit_button_rect
 
     # 버튼 중심 좌표
     option_x = int(SCREEN_WIDTH * OPTION_X_RATIO)
@@ -375,9 +373,12 @@ def draw_menu():
     leaderboard_rect = leaderboard_text.get_rect(center=leaderboard_button_rect.center)
     screen.blit(leaderboard_text, leaderboard_rect)
 
-    # 우측 상단 종료 버튼 (빨간 박스 + X)
+    # 반응형 X 버튼 생성
+    exit_button_size = int(SCREEN_WIDTH * 0.04)
+    exit_button_rect = pygame.Rect(SCREEN_WIDTH - exit_button_size - int(SCREEN_WIDTH * 0.01), int(SCREEN_HEIGHT * 0.02), exit_button_size, exit_button_size)
     pygame.draw.rect(screen, RED, exit_button_rect)
-    x_font = pygame.font.SysFont(None, 40)
+    x_font_size = int(exit_button_size * 0.8)
+    x_font = pygame.font.SysFont(None, x_font_size)
     x_text = x_font.render("X", True, WHITE)
     x_rect = x_text.get_rect(center=exit_button_rect.center)
     screen.blit(x_text, x_rect)
@@ -453,28 +454,42 @@ def option_screen():
 
     fullscreen = screen.get_flags() & pygame.FULLSCREEN != 0
 
+    # 기준 해상도 (전체 화면)
+    BASE_WIDTH, BASE_HEIGHT = 1920, 1080
+
+    # 현재 해상도에 따른 비율 계산
+    width_ratio = SCREEN_WIDTH / BASE_WIDTH
+    height_ratio = SCREEN_HEIGHT / BASE_HEIGHT
+
     center_x = SCREEN_WIDTH // 2
     center_y = SCREEN_HEIGHT // 2
 
-    button_width = SCREEN_WIDTH // 12
-    button_height = SCREEN_HEIGHT // 15
+    # UI 요소 크기 및 위치를 비율에 따라 동적 계산
+    button_width = int(160 * width_ratio)
+    button_height = int(72 * height_ratio)
+    font_size = int(36 * height_ratio)
+    symbol_font_size = int(54 * height_ratio)
 
-    minus_button = pygame.Rect(center_x - button_width - 20, center_y - button_height, button_width, button_height)
-    plus_button = pygame.Rect(center_x + 20, center_y - button_height, button_width, button_height)
+    # 폰트 동적 생성
+    dynamic_font = pygame.font.SysFont(None, font_size)
+    symbol_font = pygame.font.SysFont(None, symbol_font_size)
 
-    window_button = pygame.Rect(center_x - button_width - 20, center_y + 50, button_width + 20, button_height)
-    full_button = pygame.Rect(center_x + 20, center_y + 50, button_width + 20, button_height)
+    # 버튼 Rect 동적 생성
+    minus_button = pygame.Rect(center_x - button_width - 20 * width_ratio, center_y - button_height, button_width, button_height)
+    plus_button = pygame.Rect(center_x + 20 * width_ratio, center_y - button_height, button_width, button_height)
 
-    back_button = pygame.Rect(40, SCREEN_HEIGHT - button_height - 30, button_width, button_height)
+    window_button = pygame.Rect(center_x - button_width - 20 * width_ratio, center_y + int(50 * height_ratio), button_width + int(20 * width_ratio), button_height)
+    full_button = pygame.Rect(center_x + int(20 * width_ratio), center_y + int(50 * height_ratio), button_width + int(20 * width_ratio), button_height)
 
-    bgm_minus_button = pygame.Rect(center_x - button_width - 20, center_y + 210, button_width, button_height)
-    bgm_plus_button = pygame.Rect(center_x + 20, center_y + 210, button_width, button_height)
-    bgm_toggle_button = pygame.Rect(center_x - button_width // 2, center_y + 280, button_width, button_height)
+    back_button = pygame.Rect(int(40 * width_ratio), SCREEN_HEIGHT - button_height - int(30 * height_ratio), button_width, button_height)
+
+    bgm_minus_button = pygame.Rect(center_x - button_width - 20 * width_ratio, center_y + int(210 * height_ratio), button_width, button_height)
+    bgm_plus_button = pygame.Rect(center_x + 20 * width_ratio, center_y + int(210 * height_ratio), button_width, button_height)
+    bgm_toggle_button = pygame.Rect(center_x - button_width // 2, center_y + int(280 * height_ratio), button_width, button_height)
 
     option_bg = pygame.image.load('images/OptionScreen.png').convert()
     option_bg = pygame.transform.scale(option_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
-    symbol_font = pygame.font.SysFont(None, int(SCREEN_HEIGHT * 0.05))
     left_symbol = symbol_font.render("<", True, WHITE)
     right_symbol = symbol_font.render(">", True, WHITE)
 
@@ -482,51 +497,49 @@ def option_screen():
         screen.blit(option_bg, (0, 0))
 
         # Burgers to Make
-        screen.blit(font.render("Burgers to Make", True, BLACK), (center_x - 90, center_y - 150))
+        screen.blit(dynamic_font.render("Burgers to Make", True, BLACK), (center_x - int(90 * width_ratio), center_y - int(150 * height_ratio)))
         left_symbol_rect = left_symbol.get_rect(center=minus_button.center)
-        left_symbol_rect.y -= 30
+        left_symbol_rect.y -= int(30 * height_ratio)
         screen.blit(left_symbol, left_symbol_rect)
         right_symbol_rect = right_symbol.get_rect(center=plus_button.center)
-        right_symbol_rect.y -= 30
+        right_symbol_rect.y -= int(30 * height_ratio)
         screen.blit(right_symbol, right_symbol_rect)
 
-        count_box_width = int(SCREEN_WIDTH * 0.08)
-        count_box_height = int(SCREEN_HEIGHT * 0.07)
-        count_box_rect = pygame.Rect(center_x - count_box_width // 2, center_y - 65 - count_box_height // 2, count_box_width, count_box_height)
+        count_box_width = int(154 * width_ratio)
+        count_box_height = int(76 * height_ratio)
+        count_box_rect = pygame.Rect(center_x - count_box_width // 2, center_y - int(65 * height_ratio) - count_box_height // 2, count_box_width, count_box_height)
         pygame.draw.rect(screen, GRAY, count_box_rect, border_radius=8)
-        count_text = font.render(str(burger_goal), True, BLACK)
-        screen.blit(count_text, count_text.get_rect(center=(center_x, center_y - 65)))
-        separator_y = center_y - 15
+        count_text = dynamic_font.render(str(burger_goal), True, BLACK)
+        screen.blit(count_text, count_text.get_rect(center=(center_x, center_y - int(65 * height_ratio))))
+        separator_y = center_y - int(15 * height_ratio)
         pygame.draw.line(screen, DARK_GRAY, (center_x - SCREEN_WIDTH * 0.15, separator_y), (center_x + SCREEN_WIDTH * 0.15, separator_y), 2)
         
         # Screen Mode
-        screen.blit(font.render("Screen Mode", True, BLACK), (center_x - 90, center_y + 20))
+        screen.blit(dynamic_font.render("Screen Mode", True, BLACK), (center_x - int(90 * width_ratio), center_y + int(20 * height_ratio)))
         pygame.draw.rect(screen, BLUE if not fullscreen else DARK_GRAY, window_button, border_radius=8)
         pygame.draw.rect(screen, BLUE if fullscreen else DARK_GRAY, full_button, border_radius=8)
-        screen.blit(font.render("Windowed", True, WHITE), font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
-        screen.blit(font.render("Fullscreen", True, WHITE), font.render("Fullscreen", True, WHITE).get_rect(center=full_button.center))
-        pygame.draw.line(screen, DARK_GRAY, (center_x - SCREEN_WIDTH * 0.15, separator_y + 165), (center_x + SCREEN_WIDTH * 0.15, separator_y + 165), 2)
+        screen.blit(dynamic_font.render("Windowed", True, WHITE), dynamic_font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
+        screen.blit(dynamic_font.render("Fullscreen", True, WHITE), dynamic_font.render("Fullscreen", True, WHITE).get_rect(center=full_button.center))
+        pygame.draw.line(screen, DARK_GRAY, (center_x - SCREEN_WIDTH * 0.15, separator_y + int(165 * height_ratio)), (center_x + SCREEN_WIDTH * 0.15, separator_y + int(165 * height_ratio)), 2)
 
         # BGM Settings
-        screen.blit(font.render("BGM Select", True, BLACK), (center_x - 70, center_y + 180))
-        # pygame.draw.rect(screen, DARK_GRAY, bgm_minus_button, border_radius=8)
-        # pygame.draw.rect(screen, DARK_GRAY, bgm_plus_button, border_radius=8)
+        screen.blit(dynamic_font.render("BGM Select", True, BLACK), (center_x - int(70 * width_ratio), center_y + int(180 * height_ratio)))
         left_symbol_rect = left_symbol.get_rect(center=bgm_minus_button.center)
         screen.blit(left_symbol, left_symbol_rect)
         right_symbol_rect = right_symbol.get_rect(center=bgm_plus_button.center)
         screen.blit(right_symbol, right_symbol_rect)
         bgm_name = os.path.basename(bgm_files[current_bgm_index]).split('.')[0]
-        bgm_text = font.render(bgm_name, True, BLACK)
-        screen.blit(bgm_text, bgm_text.get_rect(center=(center_x, center_y + 245)))
+        bgm_text = dynamic_font.render(bgm_name, True, BLACK)
+        screen.blit(bgm_text, bgm_text.get_rect(center=(center_x, center_y + int(245 * height_ratio))))
 
         pygame.draw.rect(screen, GREEN if bgm_on else RED, bgm_toggle_button, border_radius=8)
         bgm_status_text = "BGM ON" if bgm_on else "BGM OFF"
-        bgm_status_surface = font.render(bgm_status_text, True, WHITE)
+        bgm_status_surface = dynamic_font.render(bgm_status_text, True, WHITE)
         screen.blit(bgm_status_surface, bgm_status_surface.get_rect(center=bgm_toggle_button.center))
 
         # Back Button
         pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
-        screen.blit(font.render("Back", True, WHITE), font.render("Back", True, WHITE).get_rect(center=back_button.center))
+        screen.blit(dynamic_font.render("Back", True, WHITE), dynamic_font.render("Back", True, WHITE).get_rect(center=back_button.center))
 
         pygame.display.flip()
 
