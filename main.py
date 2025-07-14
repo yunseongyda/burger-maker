@@ -46,6 +46,14 @@ click_sfx = pygame.mixer.Sound("sounds/button_click.mp3")
 click_sfx.set_volume(0.25)
 submit_sfx = pygame.mixer.Sound("sounds/submit-bell.mp3")
 
+# BGM 설정
+bgm_files = ["sounds/bgm/bgm1.mp3", "sounds/bgm/bgm2.mp3", "sounds/bgm/bgm3.mp3", "sounds/bgm/bgm4.mp3"]
+current_bgm_index = 0
+bgm_on = True  # BGM 상태 변수
+pygame.mixer.music.load(bgm_files[current_bgm_index])
+pygame.mixer.music.set_volume(0.25)  # 기본 볼륨 설정
+
+
 # 손 상태 이미지 로드
 open_hand_img = pygame.image.load("images/opened-hand.png").convert_alpha()
 closed_hand_img = pygame.image.load("images/closed-hand.png").convert_alpha()
@@ -441,7 +449,8 @@ def draw_menu():
 
 
 def option_screen():
-    global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen
+    print("옵션 화면 진입")
+    global SCREEN_WIDTH, SCREEN_HEIGHT, screen, burger_goal, fullscreen, current_bgm_index
 
     fullscreen = screen.get_flags() & pygame.FULLSCREEN != 0
 
@@ -460,35 +469,29 @@ def option_screen():
 
     back_button = pygame.Rect(40, SCREEN_HEIGHT - button_height - 30, button_width, button_height)
 
-    # 메뉴 화면 버튼 크기 및 위치 조정
-    start_button_rect = start_button_img.get_rect(center=(center_x, center_y + button_height * 3))
-    option_button_rect = option_button_img.get_rect(center=(center_x - button_width * 3, center_y + button_height * 3))
-    leaderboard_button_rect = leaderboard_button_img.get_rect(center=(center_x + button_width * 3, center_y + button_height * 3))
+    bgm_minus_button = pygame.Rect(center_x - button_width - 20, center_y + 180, button_width, button_height)
+    bgm_plus_button = pygame.Rect(center_x + 20, center_y + 180, button_width, button_height)
+
+    bgm_toggle_button = pygame.Rect(center_x - button_width // 2, center_y + 240, button_width, button_height)
 
     # 옵션 이미지 가져오기
     option_bg = pygame.image.load('images/OptionScreen.png').convert()
     option_bg = pygame.transform.scale(option_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
-    screen.blit(option_bg, (0, 0))
+
+    symbol_font = pygame.font.SysFont(None, int(SCREEN_HEIGHT * 0.05))
+    left_symbol = symbol_font.render("<", True, WHITE)
+    right_symbol = symbol_font.render(">", True, WHITE)
 
     while True:
         screen.blit(option_bg, (0, 0))
-        # screen.fill(GRAY)
 
         # 햄버거 개수 설정
         screen.blit(font.render("Burgers to Make", True, BLACK), (center_x-90, center_y - 110))
-        
-        # 반응형 폰트
-        symbol_font = pygame.font.SysFont(None, int(SCREEN_HEIGHT * 0.05))
-
-        # < 버튼 텍스트
-        left_symbol = symbol_font.render("<", True, WHITE)
+        pygame.draw.rect(screen, DARK_GRAY, minus_button, border_radius=8)
+        pygame.draw.rect(screen, DARK_GRAY, plus_button, border_radius=8)
         screen.blit(left_symbol, left_symbol.get_rect(center=minus_button.center))
-        
-        # > 버튼 텍스트
-        right_symbol = symbol_font.render(">", True, WHITE)
         screen.blit(right_symbol, right_symbol.get_rect(center=plus_button.center))
 
-        # 숫자 덮어주는 배경 박스 (겹침 방지용)
         count_box_width = int(SCREEN_WIDTH * 0.08)
         count_box_height = int(SCREEN_HEIGHT * 0.07)
         count_box_rect = pygame.Rect(
@@ -498,13 +501,10 @@ def option_screen():
             count_box_height
         )
         pygame.draw.rect(screen, GRAY, count_box_rect)
-
         count_text = font.render(str(burger_goal), True, BLACK)
         screen.blit(count_text, count_text.get_rect(center=(center_x, center_y - 25)))
-        # 숫자와 화면 모드 설정 사이에 여백과 구분선
-        separator_y = center_y + 35 # 수평선의 Y좌표
+        separator_y = center_y + 35
         pygame.draw.line(screen, DARK_GRAY, (center_x - SCREEN_WIDTH * 0.15, separator_y), (center_x + SCREEN_WIDTH * 0.15, separator_y), 2)
-
 
         # 화면 모드 설정
         screen.blit(font.render("Screen Mode", True, BLACK), (center_x-90, center_y + 50))
@@ -512,6 +512,23 @@ def option_screen():
         pygame.draw.rect(screen, BLUE if fullscreen else DARK_GRAY, full_button, border_radius=8)
         screen.blit(font.render("Windowed", True, WHITE), font.render("Windowed", True, WHITE).get_rect(center=window_button.center))
         screen.blit(font.render("Fullscreen", True, WHITE), font.render("Fullscreen", True, WHITE).get_rect(center=full_button.center))
+
+        # BGM 설정 UI
+        screen.blit(font.render("BGM Select", True, BLACK), (center_x - 90, center_y + 150))
+        pygame.draw.rect(screen, DARK_GRAY, bgm_minus_button, border_radius=8)
+        pygame.draw.rect(screen, DARK_GRAY, bgm_plus_button, border_radius=8)
+        screen.blit(left_symbol, left_symbol.get_rect(center=bgm_minus_button.center))
+        screen.blit(right_symbol, right_symbol.get_rect(center=bgm_plus_button.center))
+        
+        bgm_name = os.path.basename(bgm_files[current_bgm_index]).split('.')[0]
+        bgm_text = font.render(bgm_name, True, BLACK)
+        screen.blit(bgm_text, bgm_text.get_rect(center=(center_x, center_y + 215)))
+
+        # BGM ON/OFF 버튼
+        pygame.draw.rect(screen, DARK_GRAY, bgm_toggle_button, border_radius=8)
+        bgm_status_text = "BGM ON" if bgm_on else "BGM OFF"
+        bgm_status_surface = font.render(bgm_status_text, True, WHITE)
+        screen.blit(bgm_status_surface, bgm_status_surface.get_rect(center=bgm_toggle_button.center))
 
         # 뒤로가기
         pygame.draw.rect(screen, DARK_BLUE, back_button, border_radius=8)
@@ -521,8 +538,8 @@ def option_screen():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                print("옵션 화면 나감")
+                return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if minus_button.collidepoint(event.pos):
                     burger_goal = max(1, burger_goal - 1)
@@ -536,6 +553,24 @@ def option_screen():
                 elif full_button.collidepoint(event.pos):
                     fullscreen = True
                     click_sfx.play()
+                elif bgm_minus_button.collidepoint(event.pos):
+                    current_bgm_index = (current_bgm_index - 1) % len(bgm_files)
+                    pygame.mixer.music.load(bgm_files[current_bgm_index])
+                    pygame.mixer.music.play(-1)
+                    click_sfx.play()
+                elif bgm_plus_button.collidepoint(event.pos):
+                    current_bgm_index = (current_bgm_index + 1) % len(bgm_files)
+                    pygame.mixer.music.load(bgm_files[current_bgm_index])
+                    if bgm_on:
+                        pygame.mixer.music.play(-1)
+                    click_sfx.play()
+                elif bgm_toggle_button.collidepoint(event.pos):
+                    bgm_on = not bgm_on
+                    if bgm_on:
+                        pygame.mixer.music.play(-1)
+                    else:
+                        pygame.mixer.music.stop()
+                    click_sfx.play()
                 elif back_button.collidepoint(event.pos):
                     if fullscreen:
                         click_sfx.play()
@@ -546,13 +581,8 @@ def option_screen():
                         SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
                         screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
                     apply_responsive_scaling()
-
-                    # 메뉴 버튼 위치 재계산
-                    start_button_rect.center = (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + button_height * 3)
-                    option_button_rect.center = (SCREEN_WIDTH // 2 - button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
-                    leaderboard_button_rect.center = (SCREEN_WIDTH // 2 + button_width * 3, SCREEN_HEIGHT // 2 + button_height * 3)
-
                     reset_game_state()
+                    pygame.mixer.music.stop()
                     return
 
 
@@ -600,8 +630,7 @@ def leaderboard_screen():
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                return
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if back_button.collidepoint(event.pos):
                     click_sfx.play()
@@ -801,8 +830,7 @@ def end_game():
         for event in pygame.event.get():
             auto_return_start = time.time()
             if event.type == pygame.QUIT:
-                pygame.quit()
-                sys.exit()
+                return
             elif event.type == pygame.KEYDOWN:
                 if input_active:
                     if event.key == pygame.K_RETURN and user_input.strip():
@@ -889,6 +917,8 @@ while running:
                     menu_active = False
                     start_time = time.time()
                     burger_start_time = time.time()
+                    if bgm_on:
+                        pygame.mixer.music.play(-1)
                     
                 elif exit_button_rect.collidepoint(event.pos):
                     click_sfx.play()
@@ -899,6 +929,7 @@ while running:
                     option_screen()  # 옵션 화면 진입
                     
                 elif leaderboard_button_rect.collidepoint(event.pos):
+                    click_sfx.play()
                     leaderboard_screen()
         continue
 
@@ -914,7 +945,8 @@ while running:
                     items_on_screen.insert(0, {"type": current_recipe[cheat_index]})
                     cheat_index += 1
             elif event.key == pygame.K_ESCAPE:
-                end_game()
+                        pygame.mixer.music.stop()
+                        end_game()
     # 접시 이미지 스케일 및 중앙 배치
     scaled_dish = pygame.transform.scale(dish_img, (PLATE_RADIUS * 2, PLATE_RADIUS * 2))
     screen.blit(scaled_dish, (plate_pos[0] - PLATE_RADIUS, plate_pos[1] - PLATE_RADIUS))
