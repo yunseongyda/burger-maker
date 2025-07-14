@@ -15,6 +15,11 @@ cap = cv2.VideoCapture(0)
 cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
 cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
 
+if not cap.isOpened():
+    print("카메라 연동 실패")
+else:
+    print("카메라 연동 성공")
+
 # SCREEN_WIDTH, SCREEN_HEIGHT = 1280, 720
 SCREEN_WIDTH, SCREEN_HEIGHT = 1920, 1080
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT), pygame.FULLSCREEN)
@@ -617,7 +622,7 @@ def draw_buttons():
     trashbin_h = int(reset_button_rect.height * 0.9)
     scaled_trashbin = pygame.transform.scale(trashbin_img, (trashbin_w, int(trashbin_h * 1.8)))
     
-    # move 적용: 왼쪽으로 10px, 아래로 5px
+    # move 적용: 왼쪽으로 10px, 아래로 5px (취소함)
     trashbin_rect = scaled_trashbin.get_rect(center=reset_button_rect.center)
     screen.blit(scaled_trashbin, trashbin_rect)
 
@@ -626,7 +631,7 @@ def draw_buttons():
     bell_h = int(submit_button_rect.height * 0.9)
     scaled_bell = pygame.transform.scale(bell_img, (bell_w, bell_h))
     
-    # move 적용: 오른쪽으로 5px, 위로 5px
+    # move 적용: 오른쪽으로 5px, 위로 5px (취소함)
     bell_rect = scaled_bell.get_rect(center=submit_button_rect.center)
     screen.blit(scaled_bell, bell_rect)
 
