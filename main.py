@@ -9,6 +9,14 @@ import mediapipe as mp
 import time
 import json
 import os
+import sys
+
+def resource_path(relative_path):
+    try:
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 pygame.init()
 cap = cv2.VideoCapture(0)
@@ -40,14 +48,14 @@ GREEN = (0, 200, 0)
 DARK_RED = (150, 0, 0)
 PINK = (255, 105, 180)
 
-vanishing_sfx = pygame.mixer.Sound("sounds/vanishing-sfx.mp3")
-grabbing_sfx = pygame.mixer.Sound("sounds/grabbing-sfx.mp3")
-click_sfx = pygame.mixer.Sound("sounds/button_click.mp3")
+vanishing_sfx = pygame.mixer.Sound(resource_path("sounds/vanishing-sfx.mp3"))
+grabbing_sfx = pygame.mixer.Sound(resource_path("sounds/grabbing-sfx.mp3"))
+click_sfx = pygame.mixer.Sound(resource_path("sounds/button_click.mp3"))
 click_sfx.set_volume(0.25)
-submit_sfx = pygame.mixer.Sound("sounds/submit-bell.mp3")
+submit_sfx = pygame.mixer.Sound(resource_path("sounds/submit-bell.mp3"))
 
 # BGM 설정
-bgm_files = ["sounds/bgm/bgm1.mp3", "sounds/bgm/bgm2.mp3", "sounds/bgm/bgm3.mp3", "sounds/bgm/bgm4.mp3"]
+bgm_files = [resource_path("sounds/bgm/bgm1.mp3"), resource_path("sounds/bgm/bgm2.mp3"), resource_path("sounds/bgm/bgm3.mp3"), resource_path("sounds/bgm/bgm4.mp3")]
 current_bgm_index = 0
 bgm_on = True  # BGM 상태 변수
 pygame.mixer.music.load(bgm_files[current_bgm_index])
@@ -55,8 +63,8 @@ pygame.mixer.music.set_volume(0.25)  # 기본 볼륨 설정
 
 
 # 손 상태 이미지 로드
-open_hand_img = pygame.image.load("images/opened-hand.png").convert_alpha()
-closed_hand_img = pygame.image.load("images/closed-hand.png").convert_alpha()
+open_hand_img = pygame.image.load(resource_path("images/opened-hand.png")).convert_alpha()
+closed_hand_img = pygame.image.load(resource_path("images/closed-hand.png")).convert_alpha()
 
 # 사이즈 조절 (적당히)
 open_hand_img = pygame.transform.scale(open_hand_img, (50, 50))
@@ -65,7 +73,7 @@ closed_hand_img = pygame.transform.scale(closed_hand_img, (50, 50))
 
 # 설명서 페이지
 showing_rule_page = False
-game_rule_img = pygame.image.load("images/GameRulePage.png").convert()
+game_rule_img = pygame.image.load(resource_path("images/GameRulePage.png")).convert()
 game_rule_img = pygame.transform.scale(game_rule_img, (SCREEN_WIDTH, SCREEN_HEIGHT))  # 전체 화면에 맞게
 
 # 이름 저장 완료 타이머
@@ -77,21 +85,21 @@ menu_saved_message_timer = 0
 menu_saved_message_alpha = 0
 menu_saved_rank = None  # 몇 등인지 저장
 
-ranking_file = "ranking.json"
+ranking_file = os.path.join(os.path.dirname(sys.executable), "ranking.json")
 input_active = False
 user_input = ""
 
 # 접시,벨,쓰레기통 이미지
-dish_img = pygame.image.load("images/dish.png").convert_alpha()
-bell_img = pygame.image.load("images/bell.png").convert_alpha()
-trashbin_img = pygame.image.load("images/trashbin.png").convert_alpha()
+dish_img = pygame.image.load(resource_path("images/dish.png")).convert_alpha()
+bell_img = pygame.image.load(resource_path("images/bell.png")).convert_alpha()
+trashbin_img = pygame.image.load(resource_path("images/trashbin.png")).convert_alpha()
 
 # 게임 화면 이미지
-game_bg = pygame.image.load("images/GameScreen.png").convert()
+game_bg = pygame.image.load(resource_path("images/GameScreen.png")).convert()
 game_bg = pygame.transform.scale(game_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
 # 말풍선
-talk_balloon_img = pygame.image.load("images/howtoplay.png").convert_alpha()
+talk_balloon_img = pygame.image.load(resource_path("images/howtoplay.png")).convert_alpha()
 
 def save_score(name, score, overwrite=False):
     data = []
@@ -231,17 +239,17 @@ overwrite_buttons = {
 }
 
 
-start_button_img = pygame.image.load("images/button.png").convert_alpha()
+start_button_img = pygame.image.load(resource_path("images/button.png")).convert_alpha()
 start_button_img = pygame.transform.scale(start_button_img, (450, 150))
 start_button_img.set_colorkey((255, 255, 255))
 start_button_rect = start_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 2, SCREEN_HEIGHT // 2 + 400))
 
-leaderboard_button_img = pygame.image.load("images/button.png").convert_alpha()
+leaderboard_button_img = pygame.image.load(resource_path("images/button.png")).convert_alpha()
 leaderboard_button_img = pygame.transform.scale(leaderboard_button_img, (450, 150))
 leaderboard_button_img.set_colorkey((255, 255, 255))
 leaderboard_button_rect = leaderboard_button_img.get_rect(center=(SCREEN_WIDTH // 2 + 523, SCREEN_HEIGHT // 2 + 400))
 
-option_button_img = pygame.image.load("images/button.png").convert_alpha()
+option_button_img = pygame.image.load(resource_path("images/button.png")).convert_alpha()
 option_button_img = pygame.transform.scale(option_button_img, (450, 150))
 option_button_img.set_colorkey((255, 255, 255))
 option_button_rect = option_button_img.get_rect(center=(SCREEN_WIDTH // 2 - 530, SCREEN_HEIGHT // 2 + 400))
@@ -272,10 +280,10 @@ for i, name in enumerate(ingredient_names):
 ingredient_images = {}
 for name in ingredient_names:
     # load the “item” icon
-    img_item = pygame.image.load(f"images/{name}_item.png").convert_alpha()
+    img_item = pygame.image.load(resource_path(f"images/{name}_item.png")).convert_alpha()
     img_item.set_colorkey(WHITE)
     # load the “in stain” icon
-    img_stain = pygame.image.load(f"images/{name}_in_stain.png").convert_alpha()
+    img_stain = pygame.image.load(resource_path(f"images/{name}_in_stain.png")).convert_alpha()
     img_stain.set_colorkey(WHITE)
     # store as a dict for clarity
     ingredient_images[name] = {
@@ -383,7 +391,7 @@ def draw_menu():
     option_button_rect.center = (option_x, button_y)
     leaderboard_button_rect.center = (quit_x, button_y)
     
-    main_menu_bg = pygame.image.load('images/main_menu_bg.png').convert()
+    main_menu_bg = pygame.image.load(resource_path('images/main_menu_bg.png')).convert()
     main_menu_bg = pygame.transform.scale(main_menu_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(main_menu_bg, (0, 0))
 
@@ -525,7 +533,7 @@ def option_screen():
     bgm_plus_button = pygame.Rect(center_x + 20 * width_ratio, center_y + int(210 * height_ratio), button_width, button_height)
     bgm_toggle_button = pygame.Rect(center_x - button_width // 2, center_y + int(280 * height_ratio), button_width, button_height)
 
-    option_bg = pygame.image.load('images/OptionScreen.png').convert()
+    option_bg = pygame.image.load(resource_path('images/OptionScreen.png')).convert()
     option_bg = pygame.transform.scale(option_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
 
     left_symbol = symbol_font.render("<", True, WHITE)
@@ -644,7 +652,7 @@ def leaderboard_screen():
                 rankings = []
 
     # 랭킹 스크린 이미지 불러오기
-    leaderboard_bg = pygame.image.load('images/RankingScreen.png').convert()
+    leaderboard_bg = pygame.image.load(resource_path('images/RankingScreen.png')).convert()
     leaderboard_bg = pygame.transform.scale(leaderboard_bg, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(leaderboard_bg, (0, 0))
 
@@ -826,7 +834,7 @@ def end_game():
     auto_return_start = time.time()  # 자동 타이머 시작
     AUTO_RETURN_LIMIT = 10  # 자동 전환까지 10초
 
-    clear_screen = pygame.image.load('images/GameClearImage.png').convert()
+    clear_screen = pygame.image.load(resource_path('images/GameClearImage.png')).convert()
     clear_screen = pygame.transform.scale(clear_screen, (SCREEN_WIDTH, SCREEN_HEIGHT))
     screen.blit(clear_screen, (0, 0))
 
